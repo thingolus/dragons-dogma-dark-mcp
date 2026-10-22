@@ -1,0 +1,67 @@
+// Copied-value diagnostics adapted from DDDA Local Coop, by Thingolus and
+// project contributors (MIT). No timers, hooks, or input writes on load.
+'use strict';
+function runtime() {
+  if (Process.arch !== 'ia32' || Process.pointerSize !== 4 || Process.mainModule.base.toString() !== '0x400000')
+    throw Error('unsupported_build');
+  return Process.getModuleByName('ddcoop_runtime.dll');
+}
+function call(name, result, args) {
+  return new NativeFunction(runtime().getExportByName(name), result, args, 'mscdecl');
+}
+function snapshot() {
+  const buffer = Memory.alloc(132);
+  if (call('CoopGetStatus', 'int', ['pointer', 'uint'])(buffer, 132) !== 1 ||
+      buffer.readU32() !== 132 || buffer.add(4).readU32() !== 2) throw Error('abi_mismatch');
+  const keys = ['size','version','runtime','p1','p2','session','transport','native_offline',
+                'native_errors','faults','stage','generation','physical_mask','developer_input','menu_gated'];
+  const result = {};
+  keys.forEach((key, index) => result[key] = buffer.add(index * 4).readS32());
+  result.actors = [0,1].map(index => {
+    const p = buffer.add(60 + index * 36);
+    return { observed:p.readU32(), action:p.add(4).readU32(), movement:p.add(8).readU32(),
+      held:p.add(12).readU32(), frames:p.add(16).readU32(),
+      position:[20,24,28].map(offset => p.add(offset).readFloat()), angle:p.add(32).readFloat() };
+  });
+  return result;
+}
+function performance() {
+  const p = Memory.alloc(2448);
+  if (call('CoopGetPerformanceStatus','int',['pointer','uint'])(p,2448) !== 1 ||
+      p.readU32() !== 2448 || p.add(4).readU32() !== 1) throw Error('abi_mismatch');
+  return {size:2448,version:1,state:p.add(8).readU32(),coverage_mask:p.add(12).readU32(),
+    frequency:p.add(16).readU64().toString(),admitted_roots:p.add(24).readU64().toString(),
+    completed_roots:p.add(32).readU64().toString(),active_roots:p.add(40).readU64().toString(),
+    clock_failures:p.add(48).readU64().toString(),start_failures:p.add(56).readU64().toString(),
+    coverage:'Existing callback-span instrumentation only; reading does not begin or seal collection.'};
+}
+function neutralInput(connected) {
+  const s = snapshot();
+  if (s.runtime !== 2 || s.developer_input !== 1 || s.transport !== 2 || s.native_offline !== 1)
+    throw Error('input_admission_failed');
+  const p = Memory.alloc(80);
+  p.writeByteArray(new Uint8Array(80));
+  if (connected) [0,1].forEach(i => {p.add(i*20).writeU8(1);p.add(i*20+4).writeU32(1);});
+  if (call('CoopSetTestPads','int',['pointer','uint'])(p,4) !== 1) throw Error('input_refused');
+  return true;
+}
+rpc.exports = {
+  snapshot, performance,
+  neutral(connected) { if (typeof connected !== 'boolean') throw Error('invalid_parameters'); return neutralInput(connected); },
+  bootstrap(runtimePath) {
+    if (Process.arch !== 'ia32' || Process.mainModule.base.toString() !== '0x400000') throw Error('unsupported_build');
+    const module = Module.load(runtimePath);
+    if (new NativeFunction(module.getExportByName('CoopInitialize'),'int',[],'mscdecl')() !== 1 ||
+        new NativeFunction(module.getExportByName('OfflineState'),'int',[],'mscdecl')() !== 2)
+      throw Error('offline_guard_failed');
+    const ws = Process.getModuleByName('ws2_32.dll');
+    const startup = new NativeFunction(ws.getExportByName('WSAStartup'),'int',['uint','pointer'],'stdcall');
+    const socket = new SystemFunction(ws.getExportByName('socket'),'uint',['int','int','int'],'stdcall');
+    const cleanup = new NativeFunction(ws.getExportByName('WSACleanup'),'int',[],'stdcall');
+    if (startup(0x202,Memory.alloc(512)) !== 0) throw Error('offline_self_test_failed');
+    let result;
+    try { result=socket(2,1,6); } finally { cleanup(); }
+    if (result.value !== 0xffffffff || result.lastError !== 10050) throw Error('offline_self_test_failed');
+    return snapshot();
+  }
+};

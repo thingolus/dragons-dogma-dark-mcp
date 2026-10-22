@@ -2,7 +2,7 @@
 
 **Date:** 22 October 2026
 
-**Delivery state:** plan and independent private repository; server implementation has not started.
+**Delivery state:** version 0.1.0 implemented. This document retains the original design and acceptance gates; current behavior and verification are documented in [README.md](README.md), [operations](docs/OPERATIONS.md), and [validation](docs/VALIDATION.md). The native acceptance gates are not all complete. Estimates below are planning estimates, not measured delivery or speedup claims.
 
 **Primary source:** [ddda-local-coop at `61ed1bf`](https://github.com/thingolus/ddda-local-coop/tree/61ed1bf830141b75981babe362cef42579eb98e3).
 

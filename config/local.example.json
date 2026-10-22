@@ -1,8 +1,5 @@
 {
   "schema_version": 1,
-  "status": "proposed-contract-not-yet-implemented",
-  "project_name": "Dragons Dogma Dark MCP",
-  "paths_relative_to": "project_root",
   "game_root": "..",
   "coop_source_root": "../ddda-local-coop",
   "coop_source_commit": "61ed1bf830141b75981babe362cef42579eb98e3",
@@ -11,7 +8,8 @@
   "index_root": "cache",
   "transport": "stdio",
   "profile": "read_only",
-  "session_access": "exclusive_coordinator",
+  "deployment_candidates": {},
+  "save_roots": [],
   "limits": {
     "max_inline_result_bytes": 16384,
     "max_page_items": 100,

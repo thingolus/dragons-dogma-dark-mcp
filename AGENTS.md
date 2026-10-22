@@ -1,6 +1,6 @@
 # Dragons Dogma Dark MCP implementation instructions
 
-Read `README.md`, `IMPLEMENTATION_PLAN.md`, and `reuse-manifest.json` before implementation. This checkout currently contains a plan, not a working MCP server.
+Read `README.md`, `docs/VALIDATION.md`, `IMPLEMENTATION_PLAN.md`, and `reuse-manifest.json` before changes. This checkout contains the version 0.1 MCP implementation; the validation document separates verified behavior from remaining native acceptance.
 
 - Keep this project independent from the sibling co-op repository. Do not stage, commit, reset, or overwrite that repository's active changes.
 - Use the pinned upstream commit as the reproducible starting point. Record any newer commit explicitly before adopting it. Never describe uncommitted upstream work as part of the pinned baseline.
@@ -15,4 +15,4 @@ Read `README.md`, `IMPLEMENTATION_PLAN.md`, and `reuse-manifest.json` before imp
 - Keep private traces, saves, game assets, binaries, credentials, and decompiler databases out of Git, including private Git repositories. Retain upstream copyright/license notices when copying original project code.
 - Run checks appropriate to each milestone. Do not call static or mock tests native gameplay acceptance. Record build identity and remaining uncertainty.
 
-The user's current task created the plan and private repository. Full server implementation is subsequent work.
+Preserve the user's requested Thingolus credit and MIT copyright/license notices. Run the Python tests and Ruff checks after behavioral changes; use the read-only stdio smoke for integration changes. Never convert synthetic checks into claims of native acceptance.

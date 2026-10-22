@@ -2,7 +2,15 @@
   "schema_version": 1,
   "project": "Dragons Dogma Dark MCP",
   "created_date": "2026-10-22",
-  "status": "planning-inventory; no implementation copied",
+  "status": "implemented-adapters; upstream identity remains pinned; native acceptance separate",
+  "implementation_adaptations": {
+    "scripts/inspect_game.py and static probe conventions": "src/ddda_mcp/binary.py",
+    "research/runtime_api.js ABI readers": "src/ddda_mcp/agent.js (inert on load)",
+    "research host ownership and offline checks": "src/ddda_mcp/native_worker.py and session.py (dedicated typed broker)",
+    "build targets and tools.lock.json pins": "src/ddda_mcp/build.py (isolated source archive)",
+    "research deployment ownership manifests": "src/ddda_mcp/deployment.py",
+    "Ghidra export conventions": "src/ddda_mcp/ExportMcp.java"
+  },
   "upstream": {
     "repository": "https://github.com/thingolus/ddda-local-coop",
     "commit": "61ed1bf830141b75981babe362cef42579eb98e3",
