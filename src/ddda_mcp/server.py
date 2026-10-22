@@ -281,12 +281,15 @@ def create_server(config: Config, config_path: Path | None = None) -> tuple[MCPS
 
     @mcp.tool(annotations=Write)
     async def run_scenario(
-        recipe: Literal["observe_idle", "neutral_input"], seconds: Annotated[float, Field(ge=0.1, le=120)] = 5
+        recipe: Literal["observe_idle", "neutral_input", "dismiss_title"],
+        seconds: Annotated[float, Field(ge=0.1, le=120)] = 5,
     ) -> Result:
-        """Run a reviewed observation or neutral-controller recipe. Releases synthetic input on exit."""
+        """Run a reviewed recipe with cleanup. dismiss_title presses Start once for 250ms; never confirms a save/menu choice."""
 
         async def submit():
             config.require_development()
+            if recipe == "dismiss_title":
+                return app.jobs.submit("run_scenario", app.sessions.dismiss_title)
             return app.jobs.submit(
                 "run_scenario", lambda: app.sessions.capture(seconds, 250, recipe == "neutral_input")
             )

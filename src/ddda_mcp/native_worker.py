@@ -26,7 +26,7 @@ def run(config: Config, session_id: str, receipt_path: Path) -> None:
     import frida
 
     config.require_development()
-    pid, created, session, script = None, None, None, None
+    pid, created, session, script, receipt = None, None, None, None, None
     parent = psutil.Process(os.getppid())
     parent_created = parent.create_time()
     work = queue.Queue(maxsize=8)
@@ -51,6 +51,9 @@ def run(config: Config, session_id: str, receipt_path: Path) -> None:
                     break
             except psutil.Error:
                 break
+        # Expiry must end the broker loop as well as the owned game; otherwise
+        # the dead session keeps the game-directory lease indefinitely.
+        done.set()
         if pid is not None and created is not None:
             try:
                 stop_owned(pid, created)
@@ -83,11 +86,14 @@ def run(config: Config, session_id: str, receipt_path: Path) -> None:
                 "game_sha256": build["sha256"],
                 "runtime_sha256": deployment["files"]["ddcoop_runtime.dll"],
                 "settings_sha256": deployment["files"]["ddcoop.ini"],
+                "runtime_source_commit": deployment.get("source_commit"),
+                "runtime_provenance": "Installed artifact verified by SHA-256; source commit is unknown unless recorded by its deployment.",
             }
             atomic_json(receipt_path, receipt)
             threading.Thread(target=watchdog, daemon=True).start()
             threading.Thread(target=reader, daemon=True).start()
             session = device.attach(pid)
+            session.on("detached", lambda *args: done.set())
             script = session.create_script(Path(__file__).with_name("agent.js").read_text())
             script.on(
                 "message", lambda message, data: print(json.dumps(message), file=sys.stderr, flush=True)
@@ -117,6 +123,8 @@ def run(config: Config, session_id: str, receipt_path: Path) -> None:
                         value = script.exports_sync.performance()
                     elif op == "neutral" and type(request.get("connected")) is bool:
                         value = script.exports_sync.neutral(request["connected"])
+                    elif op == "title_start" and type(request.get("pressed")) is bool:
+                        value = script.exports_sync.title_start(request["pressed"])
                     elif op == "stop":
                         emit({"id": request["id"], "ok": True, "value": {"stopping": True}})
                         break
@@ -136,7 +144,7 @@ def run(config: Config, session_id: str, receipt_path: Path) -> None:
                     session.detach()
                 except Exception:
                     pass
-            if pid is not None:
+            if receipt is not None:
                 atomic_json(receipt_path, dict(receipt, state="stopped", stopped_at=utc_now()))
 
 

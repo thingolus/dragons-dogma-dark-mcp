@@ -194,6 +194,7 @@ class FakeSession(Sessions):
                 "version": 2,
                 "runtime": 2,
                 "transport": 2,
+                "guard_transport": 2,
                 "native_offline": 1,
                 "native_errors": 0,
                 "faults": 0,
@@ -315,7 +316,7 @@ def test_offline_guard_failure_disables_live_adapter(development):
 
         async def offline_failure(operation, **params):
             result = await original(operation, **params)
-            result["transport"] = 0
+            result["guard_transport"] = 0
             return result
 
         session._request = offline_failure
@@ -348,5 +349,104 @@ def test_stale_broker_response_is_not_replayed(development):
         with pytest.raises(ToolFailure, match="match"):
             await session._request("snapshot")
         assert session.unusable and len(writes) == 1
+
+    asyncio.run(run())
+
+
+def test_pending_native_state_allows_observation_but_refuses_neutral(development):
+    async def run():
+        session = FakeSession(development)
+        original = session._request
+
+        async def pending(op, **params):
+            result = await original(op, **params)
+            if op == "snapshot":
+                result.update(native_offline=0, transport=0, stage=0, generation=0)
+            return result
+
+        session._request = pending
+        status = await session.snapshot()
+        assert status["native_state"] == "pending_game_initialization"
+        assert not status["input_admitted"] and not session.unusable
+        with pytest.raises(ToolFailure, match="readiness"):
+            await session.capture(1, 100, True)
+        assert all(op == "snapshot" for op, _ in session.calls)
+
+    asyncio.run(run())
+
+
+def test_title_start_is_one_shot_and_releases_on_cancellation(development):
+    async def run():
+        session = FakeSession(development)
+        original = session._request
+
+        async def title(op, **params):
+            result = await original(op, **params)
+            if op == "snapshot":
+                result.update(stage=0, generation=0, native_offline=0)
+            return result
+
+        session._request = title
+        task = asyncio.create_task(session.dismiss_title())
+        while not any(op == "title_start" for op, _ in session.calls):
+            await asyncio.sleep(0.001)
+        task.cancel()
+        with pytest.raises(asyncio.CancelledError):
+            await task
+        assert session.calls[-1] == ("title_start", {"pressed": False})
+        with pytest.raises(ToolFailure, match="once"):
+            await session.dismiss_title()
+
+    asyncio.run(run())
+
+
+def test_title_start_refuses_loaded_world(development):
+    async def run():
+        session = FakeSession(development)
+        with pytest.raises(ToolFailure, match="loaded world"):
+            await session.dismiss_title()
+        assert all(op == "snapshot" for op, _ in session.calls)
+
+    asyncio.run(run())
+
+
+def test_full_suite_holds_game_lease_and_core_does_not(development, monkeypatch):
+    import ddda_mcp.build as module
+    from ddda_mcp.ownership import game_lease
+    from ddda_mcp.source import Source
+
+    monkeypatch.setattr(module, "require_closed", lambda: None)
+
+    async def run():
+        builds = module.Builds(development, Source(development), Artifacts(development))
+
+        async def inner(configuration, group):
+            if group == "all":
+                with pytest.raises(ToolFailure, match="owns"):
+                    with game_lease(development.game):
+                        pass
+            else:
+                with game_lease(development.game):
+                    pass
+            return {"group": group}
+
+        builds._build_locked = inner
+        assert (await builds.build(test_group="all"))["group"] == "all"
+        assert (await builds.build(test_group="core"))["group"] == "core"
+
+    asyncio.run(run())
+
+
+def test_small_trace_budget_retains_readable_partial_evidence(development):
+    development.settings.limits.max_trace_bytes = 8192
+
+    async def run():
+        session = FakeSession(development)
+        with pytest.raises(ToolFailure) as caught:
+            await session.capture(3, 100)
+        assert caught.value.code == "trace_overflow"
+        evidence = session.artifacts.get(caught.value.details["artifact_id"])
+        assert evidence["data"]["samples"]
+        assert evidence["data"]["summary"]["outcome"] == "failed"
 
     asyncio.run(run())

@@ -2,7 +2,7 @@
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const vm = require('node:vm');
-let inputCalls = 0, statusSize = 132, statusVersion = 2;
+let inputCalls = 0, statusSize = 132, statusVersion = 2, stage = 0, lastButtons = 0;
 class Pointer {
   constructor(buffer, offset=0) { this.buffer=buffer; this.offset=offset; }
   add(n) { return new Pointer(this.buffer,this.offset+n); }
@@ -12,6 +12,7 @@ class Pointer {
   readFloat() { return this.buffer.readFloatLE(this.offset); }
   writeU8(n) { this.buffer.writeUInt8(n,this.offset); }
   writeU32(n) { this.buffer.writeUInt32LE(n,this.offset); }
+  writeU16(n) { this.buffer.writeUInt16LE(n,this.offset); }
   writeByteArray(bytes) { Buffer.from(bytes).copy(this.buffer,this.offset); }
 }
 const context = {
@@ -19,16 +20,18 @@ const context = {
            getModuleByName:()=>({getExportByName:name=>name})},
   Memory:{alloc:n=>new Pointer(Buffer.alloc(n))},
   NativeFunction:function(name) {
+    if(name==='OfflineState') return ()=>2;
     if(name==='CoopGetStatus') return (p,size)=>{
       assert.equal(size,132); p.writeU32(statusSize); p.add(4).writeU32(statusVersion);
       p.add(8).writeU32(2);p.add(24).writeU32(2);p.add(28).writeU32(1);p.add(52).writeU32(1);
+      p.add(40).writeU32(stage);
       return 1;
     };
     if(name==='CoopGetPerformanceStatus') return (p,size)=>{
       assert.equal(size,2448);p.writeU32(2448);p.add(4).writeU32(1);
       p.buffer.writeBigUInt64LE(9007199254740993n,16); return 1;
     };
-    if(name==='CoopSetTestPads') return (p,count)=>{ assert.equal(count,4);inputCalls++;return 1; };
+    if(name==='CoopSetTestPads') return (p,count)=>{ assert.equal(count,4);lastButtons=p.buffer.readUInt16LE(8);inputCalls++;return 1; };
     throw Error('Unexpected native call: '+name);
   },
   rpc:{exports:{}}, Uint8Array,
@@ -45,4 +48,7 @@ statusVersion=2; statusSize=128; assert.throws(()=>context.rpc.exports.snapshot(
 statusSize=132;
 assert.throws(()=>context.rpc.exports.neutral('true'),/invalid_parameters/);
 context.rpc.exports.neutral(true);context.rpc.exports.neutral(false);assert.equal(inputCalls,2);
+context.rpc.exports.titleStart(true);assert.equal(lastButtons,0x10);
+stage=220;assert.throws(()=>context.rpc.exports.titleStart(true),/not_title_state/);
+context.rpc.exports.titleStart(false);assert.equal(lastButtons,0);
 console.log('agent contract passed: inert load, no-input reads, ABI refusal, exact uint64, explicit input only');

@@ -2,7 +2,8 @@
   "schema_version": 1,
   "project": "Dragons Dogma Dark MCP",
   "created_date": "2026-10-22",
-  "status": "implemented-adapters; upstream identity remains pinned; native acceptance separate",
+  "status": "implemented-adapters; native observation/lifecycle and local integration verified; loaded-world input gate remains separate",
+  "validation_document": "docs/VALIDATION.md",
   "implementation_adaptations": {
     "scripts/inspect_game.py and static probe conventions": "src/ddda_mcp/binary.py",
     "research/runtime_api.js ABI readers": "src/ddda_mcp/agent.js (inert on load)",

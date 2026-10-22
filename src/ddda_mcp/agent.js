@@ -17,6 +17,9 @@ function snapshot() {
                 'native_errors','faults','stage','generation','physical_mask','developer_input','menu_gated'];
   const result = {};
   keys.forEach((key, index) => result[key] = buffer.add(index * 4).readS32());
+  // The copied transport/native fields are populated by game callbacks and may
+  // still be zero at the title screen. Read the pinned transport guard directly.
+  result.guard_transport = call('OfflineState', 'int', [])();
   result.actors = [0,1].map(index => {
     const p = buffer.add(60 + index * 36);
     return { observed:p.readU32(), action:p.add(4).readU32(), movement:p.add(8).readU32(),
@@ -37,7 +40,7 @@ function performance() {
 }
 function neutralInput(connected) {
   const s = snapshot();
-  if (s.runtime !== 2 || s.developer_input !== 1 || s.transport !== 2 || s.native_offline !== 1)
+  if (s.runtime !== 2 || s.developer_input !== 1 || s.transport !== 2 || s.guard_transport !== 2 || s.native_offline !== 1 || s.native_errors !== 0 || s.faults !== 0)
     throw Error('input_admission_failed');
   const p = Memory.alloc(80);
   p.writeByteArray(new Uint8Array(80));
@@ -47,6 +50,18 @@ function neutralInput(connected) {
 }
 rpc.exports = {
   snapshot, performance,
+  titleStart(pressed) {
+    if (typeof pressed !== 'boolean') throw Error('invalid_parameters');
+    const s = snapshot();
+    if (s.runtime !== 2 || s.guard_transport !== 2 || s.developer_input !== 1 || s.native_errors !== 0 || s.faults !== 0)
+      throw Error('input_admission_failed');
+    if (pressed && (s.stage !== 0 || s.generation !== 0 || s.actors.some(a => a.observed !== 0)))
+      throw Error('not_title_state');
+    const p = Memory.alloc(80); p.writeByteArray(new Uint8Array(80));
+    if (pressed) {p.writeU8(1);p.add(4).writeU32(1);p.add(8).writeU16(0x10);}
+    if (call('CoopSetTestPads','int',['pointer','uint'])(p,4) !== 1) throw Error('input_refused');
+    return true;
+  },
   neutral(connected) { if (typeof connected !== 'boolean') throw Error('invalid_parameters'); return neutralInput(connected); },
   bootstrap(runtimePath) {
     if (Process.arch !== 'ia32' || Process.mainModule.base.toString() !== '0x400000') throw Error('unsupported_build');

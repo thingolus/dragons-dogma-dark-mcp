@@ -17,6 +17,7 @@ from .artifacts import Artifacts
 from .binary import Binary
 from .common import ToolFailure, contained, digest
 from .config import GAME_SHA256, Config
+from .ownership import game_lease, require_closed
 from .source import Source
 
 
@@ -78,6 +79,32 @@ def unpack_archive(data: bytes, destination: Path) -> None:
                 raise ToolFailure("invalid_archive", "Source archive contains a link or unsupported entry.")
 
 
+def ghidra_command(home: Path, java: str, folder: Path) -> list[str]:
+    """Use the distribution's Windows VM options, including its required class loader."""
+    properties = home / "support/launch.properties"
+    if not properties.is_file():
+        raise ToolFailure("tool_missing", "Ghidra support/launch.properties is missing.")
+    options = [
+        line.split("=", 1)[1]
+        for line in properties.read_text(encoding="utf-8").splitlines()
+        if line.startswith(("VMARGS=", "VMARGS_WINDOWS="))
+    ]
+    temporary = folder / "tmp"
+    temporary.mkdir(parents=True, exist_ok=True)
+    return [
+        java,
+        *options,
+        "-Xmx3G",
+        "-XX:ParallelGCThreads=2",
+        "-XX:CICompilerCount=2",
+        f"-Djava.io.tmpdir={temporary}",
+        "-cp",
+        str(home / "Ghidra/Framework/Utility/lib/Utility.jar"),
+        "ghidra.Ghidra",
+        "ghidra.app.util.headless.AnalyzeHeadless",
+    ]
+
+
 class Builds:
     def __init__(self, config: Config, source: Source, artifacts: Artifacts):
         self.config, self.source, self.artifacts = config, source, artifacts
@@ -100,6 +127,16 @@ class Builds:
         )
 
     async def build(self, configuration: str = "Debug", test_group: str = "all") -> dict:
+        self.config.require_development()
+        # The full upstream suite creates a D3D device. A fullscreen game can
+        # make that test fail even when the binaries are correct.
+        if test_group == "all":
+            with game_lease(self.config.game):
+                require_closed()
+                return await self._build_locked(configuration, test_group)
+        return await self._build_locked(configuration, test_group)
+
+    async def _build_locked(self, configuration: str, test_group: str) -> dict:
         self.config.require_development()
         if configuration not in {"Debug", "Release"} or test_group not in {"all", "core"}:
             raise ToolFailure("invalid_parameters", "Choose Debug/Release and all/core.")
@@ -250,13 +287,7 @@ class Builds:
             folder.mkdir(parents=True)
             shutil.copyfile(Path(__file__).with_name("ExportMcp.java"), folder / "ExportMcp.java")
             output = folder / "export.json"
-            args = [
-                java,
-                "-Xmx3G",
-                "-cp",
-                str(jar),
-                "ghidra.Ghidra",
-                "ghidra.app.util.headless.AnalyzeHeadless",
+            args = ghidra_command(home, java, folder) + [
                 str(projects),
                 settings.ghidra_project_name,
                 "-process",

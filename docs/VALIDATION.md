@@ -1,48 +1,50 @@
 # Validation and remaining acceptance
 
-Validated on 22 October 2026 for version 0.1.0, by Thingolus's development workflow. The checks below describe what was actually run. They do not imply full native gameplay acceptance.
+Version **0.2.0**, validated on 22 October 2026. Creator: **Thingolus**. This record distinguishes implementation tests, real native observations, and the remaining loaded-game input gate.
 
 ## Passed
 
-| Check | Result |
+| Check | Evidence |
 | --- | --- |
-| Python suite | 48 tests passed on Python 3.13 / Windows. Temporary fixture tests ran outside the restricted sandbox because its temporary directories were inaccessible. |
-| Ruff | All checks passed for `src`, `tests`, and `scripts`. |
-| Real stdio client | SDK client connected to the actual server subprocess, listed 24 tools with output schemas, read resources, and called project, knowledge, source, symbol, and PE tools. |
-| Immutable source reuse | All 42 manifest entries verified against `61ed1bf830141b75981babe362cef42579eb98e3`; dirty co-op changes were excluded. |
-| Real knowledge index | 134 pinned research/documentation files indexed and searched. |
-| Real executable | SHA-256 `19facc2642f79a09d14ce55eace5f228161f2f8bab60ec67eb3c6196cc6277b8`; x86, image base `0x400000`; bounded disassembly completed without launching or attaching. |
-| Real isolated C++ build | MCP `build_and_test` job configured MSVC 19.44 / Win32, built core targets from the pinned Git archive and MinHook commit, and passed all three selected CTest entries with zero failures. |
-| Configuration | Example config validated; `--check` passed against the real source/game files. |
-| Packaging | Locked dependency resolution, source distribution, and wheel built. Wheel contains the JS agent, Java exporter, Thingolus author metadata, MIT license, and third-party notices. Distribution inventory excludes local private state and caches. |
+| Python suite | 53 tests passed on Python 3.13 / Windows; Ruff passes. |
+| Real MCP stdio | 24 typed tools with output schemas and four resource routes; actual client calls against the server subprocess. |
+| Pinned research and PE | 42 source inventory entries verified, 134 documents indexed, supported x86 executable identified and disassembled. Dirty co-op source is excluded. |
+| Full isolated build | All 122 upstream CTest entries passed through `build_and_test`, including the D3D test; zero failures. |
+| Owned native launch | Real Frida bootstrap and offline transport self-test, exact executable/runtime/settings hashes, copied status and performance ABI reads. |
+| Observation workflow | Two bounded captures, comparison, cancellation with partial evidence, and post-cancellation status succeeded. A second MCP client was refused ownership. |
+| Process lifecycle | Real stdin EOF, supervisor death, and heartbeat expiry stopped the owned game and broker. Observed cleanup after the trigger was about 0.31 s, 0.20 s, and 26.78 s respectively; the heartbeat deadline starts before the test's ready message. |
+| Deployment | A temporary developer-input candidate was prepared/applied through MCP and rolled back to byte-identical DLLs, settings, and original ownership manifest. |
+| Saves | Player save backup verified. Restore and undo ran on a disposable copy. The actual player save hash was preserved. |
+| Ghidra | Hash-pinned Ghidra 12.1.4 and JDK 21 installed locally; supported game database explicitly imported; full analysis completed successfully in 496 seconds; `pawn_delete` exported/decompiled through real MCP stdio, initially returning 301 characters of C. |
 
-The isolated build used MinHook commit `c3fcafdc10146beb5919319d0683e44e3c30d537`. CTest entries were `core_and_hook_tests`, `settings_validation`, and `controller_session_policy`. Its completed MCP job ID was `793e31e044a7476da24866def179f728`; evidence artifact ID `009508b6b2b4487a847dce2bf2bcafc0`, SHA-256 `0a2de3d908fadc2704346b303c4c53ecc6eef2c197d15dad85eb659c94ab4666`. It completed in approximately 25 seconds outside the sandbox. The initial sandboxed attempt stalled in compiler execution and was cancelled at the smoke script's ten-minute deadline; it is not counted as a passing build.
+Full build job: `08b783d9a1e845d595f3c3bf917c2bdf`. Artifact: `42e9d3d0eb2a407b91f03d3722928db2`, SHA-256 `ea555bfd2768c27e8e9e5253c1151fc71d87a351d3662bf05ec5e0c93522e8a4`. The source commit is `61ed1bf830141b75981babe362cef42579eb98e3` and MinHook commit is `c3fcafdc10146beb5919319d0683e44e3c30d537`.
 
-## Automated coverage
+Native tests used installed runtime SHA-256 `49e784556849fa3ed1cde9fc26d3018dfd72215eebe33efb2fa5af296c5f4ddf` and game SHA-256 `19facc2642f79a09d14ce55eace5f228161f2f8bab60ec67eb3c6196cc6277b8`. The runtime came from the existing research deployment; its compilation source commit is not established by the MCP knowledge pin. The active co-op working tree was not modified.
 
-Tests exercise immutable Git reads despite dirty working files, fingerprint failures, symbol merging, literal FTS searches, concurrent indexing, PE bounds, malformed DLLs, path/archive escapes, real SDK schemas and stdio transport, profile refusals, deployment ownership and rollback, interrupted deployment recovery, save undo backups, job cancellation before/after start, subprocess timeout cleanup, artifact bounds and complete pagination of long strings, and compatible-evidence comparisons.
+## Defects found and corrected with real checks
 
-Native protocol tests use a synthetic session and a Node-hosted Frida API fixture. They verify that loading/reading the shipped agent produces no input, ABI size/version mismatches fail, large integer counters retain precision, neutral input is explicit, stale broker replies disable the session, and failed/cancelled captures retain partial evidence with cleanup. These tests validate adapter contracts; they do not run Frida inside DDDA.
+- Startup copied fields report native offline readiness as pending. Version 0.1 incorrectly treated this as a failed guard and disabled observation. The agent now reads the transport guard directly and reports pending native state explicitly. Neutral input still requires native readiness and no faults.
+- Heartbeat expiry originally stopped the game but left the broker loop and lease alive. The watchdog now signals broker shutdown, and unexpected Frida detachment also ends the loop. The three real lifecycle checks pass after the fix.
+- Running a fullscreen DDDA instance alongside the upstream graphics test caused a D3D device-creation failure. All 122 tests passed with DDDA closed. Full MCP builds now hold the shared game lease to prevent this conflict.
+- Direct Java execution needs Ghidra's shipped VM options, including its class loader. The MCP and setup CLI now use the distribution's Windows options; real export passes.
+- Trace accounting now includes pretty-printed storage overhead so a small byte budget still preserves readable partial evidence.
 
-## Measurements
+## Loaded-game input gate remains unverified
 
-The final read-only stdio smoke measured six searches on this machine with an existing index. The first request took 8.268 ms. The following five had a median of 3.292 ms and a range of 3.033–3.375 ms, returning about 6 KB per response. This is a small local latency sample. It is not an AI productivity benchmark. No end-to-end speedup or token reduction claim has been established.
+The native `neutral_input` acceptance run did not reach native offline readiness and is **not passed**. A Windows Security prompt for OpenJDK covered the desktop. The user was away and unable to dismiss it; it was left untouched. A bounded title-screen Start request was accepted by the research runtime and released, but it did not establish game progression or native offline readiness. No A/confirm input, New Game selection, save loading, or combat actions were sent.
 
-Machine-local reports are ignored by Git: `artifacts/validation/stdio-smoke.json` and `artifacts/validation/core-build.json`. Full build logs and durable receipts remain in `private/runs`.
+The implementation retains its readiness restriction. `dismiss_title` is one fixed 250 ms Start request per owned session, limited to no loaded stage/generation/actors; successful submission does not claim UI progression. Loaded-world neutral input, physical-controller behavior, combat, and long-running gameplay stability require later native acceptance in a ready game. These are not inferred from the synthetic agent tests or title-screen observation.
 
-## Remaining acceptance
+## Evidence and reproducibility
 
-- An owned native game session, real Frida bootstrap/offline transport check, status/performance reads, watchdog termination, and neutral-input cleanup inside the supported game.
-- Deployment/rollback and save backup/restore on a dedicated research installation with disposable saves. Fixture tests passed, but the actual user's installation and saves were not changed.
-- Ghidra execution against a configured database and installed Java/Ghidra toolchain.
-- Full upstream build/test group; this run selected the three core CTest entries only.
-- Physical-controller behavior, combat, menus, pawn behavior, and long-running stability. The current recipes only observe or supply neutral synthetic input.
-- Controlled before/after measurements for actual AI development workflows.
+Run the opt-in scripts documented in [operations](OPERATIONS.md). Local reports include `stdio-smoke.json`, `all-build.json`, `native-observation.json`, `native-neutral.json`, `transactions.json`, `lifecycle.json`, and `ghidra.json` under ignored `artifacts/validation`. Native-neutral retains its failed outcome; passing observation and transaction reports do not replace that result. Detailed session, job, deployment, and save receipts remain in `private/runs`.
 
-Another co-op task was using the game during implementation. No game was launched, attached, stopped, redeployed, or supplied input by this implementation task. Native acceptance should run when that owner has finished, using an explicitly configured development profile and research installation.
+The automated suite covers source identity, bounds, schemas, paths, deployment interruption/rollback, save undo, cancellation, live readiness refusal, one-shot title input and cleanup, lease exclusion for the full build, artifact pagination, and overflow with partial evidence. The shipped JS agent is tested against a synthetic Frida ABI as well as real observation calls; synthetic tests do not establish gameplay acceptance.
 
-## Design limitations
+The v0.1 warm-search sample had a median of 3.292 ms over five requests on this machine. No paired AI productivity or token-reduction benchmark has established an overall development speedup. There is no claim of extreme speedup.
 
-Version 0.1 uses a dedicated typed broker instead of the legacy single-slot mailbox. It does not attach to existing games, import a new Ghidra database, migrate loader types, adopt player deployments, install missing save fixtures, coordinate Steam Cloud, or provide atomic recovery of a multi-file save restore. Stopping an owned session terminates it without saving. These boundaries are described in [operations](OPERATIONS.md).
+## Scope boundaries
 
-The MIT license permits modification and redistribution while requiring retention of the copyright/license notice. It supplies the requested attribution through the **Thingolus** copyright notice; it does not require a visible in-game credits screen. See the [license text](../LICENSE) and [OSI MIT reference](https://opensource.org/license/mit).
+The MCP does not attach to existing games, adopt player installations, migrate loader types, accept arbitrary scripts/native calls, or manipulate Steam Cloud. Database import/analysis is an explicit setup CLI action; the MCP export remains read-only. Save restore currently requires existing files and provides undo backups, but multi-file restore is not an atomic crash-recoverable transaction. These remain documented scope boundaries.
+
+Thingolus's credit and MIT license are retained. Modifications and redistribution are allowed with retention of the copyright and permission notice; MIT does not require a visible in-game credit screen. See [LICENSE](../LICENSE) and the [OSI MIT reference](https://opensource.org/license/mit).

@@ -23,6 +23,7 @@ class Sessions:
         self.heartbeat_task = None
         self.error_stream = None
         self.unusable = False
+        self.title_start_used = False
 
     def status(self) -> dict:
         alive = self.process is not None and self.process.returncode is None
@@ -30,7 +31,11 @@ class Sessions:
             "owned_session": self.receipt if alive else None,
             "running": alive,
             "unusable": self.unusable,
-            "external_game_processes": game_processes(),
+            "external_game_processes": [
+                p
+                for p in game_processes()
+                if not alive or not self.receipt or p["pid"] != self.receipt.get("pid")
+            ],
             "operation_busy": self.operation_lock.locked(),
             "policy": "No attachment to existing games; legacy research mailboxes are never written.",
         }
@@ -71,6 +76,7 @@ class Sessions:
                 limit=65536,
             )
             self.unusable = False
+            self.title_start_used = False
             try:
                 line = await asyncio.wait_for(self.process.stdout.readline(), timeout=30)
                 result = json.loads(line)
@@ -130,11 +136,21 @@ class Sessions:
         if result.get("size") != 132 or result.get("version") != 2:
             self.unusable = True
             raise ToolFailure("abi_mismatch", "CoopStatus requires size=132/version=2.")
-        if result.get("runtime") != 2 or result.get("transport") != 2 or result.get("native_offline") != 1:
+        if (
+            result.get("runtime") != 2
+            or result.get("guard_transport") != 2
+            or result.get("transport") not in {0, 2}
+            or result.get("native_offline") not in {0, 1}
+            or result.get("native_errors") != 0
+        ):
             self.unusable = True
             raise ToolFailure("offline_guard_failed", "Runtime/offline guard is not admitted.")
         return {
             **result,
+            "native_state": "ready" if result["native_offline"] == 1 else "pending_game_initialization",
+            "input_admitted": result["native_offline"] == 1
+            and result.get("developer_input") == 1
+            and result.get("faults") == 0,
             "captured_at": utc_now(),
             "evidence_class": "native_observation",
             "freshness": "Copied snapshot at capture; actor sample ages are not supplied by this ABI.",
@@ -150,6 +166,42 @@ class Sessions:
                 return {"runtime": status, "performance": await self._request("performance")}
             raise ToolFailure("invalid_parameters", "group must be runtime or performance.")
 
+    async def dismiss_title(self) -> dict:
+        """One fixed Start press, with no A/confirm/navigation or save loading."""
+        self._admit()
+        async with self.operation_lock:
+            before = await self._snapshot()
+            if self.title_start_used:
+                raise ToolFailure("already_attempted", "Title Start is allowed once per owned session.")
+            if (
+                before.get("developer_input") != 1
+                or before.get("stage") != 0
+                or before.get("generation") != 0
+                or any(a["observed"] for a in before.get("actors", []))
+            ):
+                raise ToolFailure(
+                    "not_title_state", "Title Start requires developer input and no loaded world/actors."
+                )
+            self.title_start_used = True
+            try:
+                await self._request("title_start", pressed=True)
+                await asyncio.sleep(0.25)
+            finally:
+                try:
+                    await self._request("title_start", pressed=False)
+                except Exception as exc:
+                    self.unusable = True
+                    await self._stop()
+                    raise ToolFailure(
+                        "cleanup_failed", "Title input cleanup failed; owned session stopped."
+                    ) from exc
+            after = await self._snapshot()
+            return self.artifacts.put(
+                "title_start",
+                {"summary": {"input_released": True, "press_ms": 250}, "before": before, "after": after},
+                {**(self.receipt or {}), "recipe": "dismiss_title", "evidence_class": "synthetic_native"},
+            )
+
     async def capture(self, seconds: float, interval_ms: int = 250, neutral: bool = False) -> dict:
         self._admit()
         if (
@@ -164,9 +216,10 @@ class Sessions:
             started = time.monotonic()
             end = started + seconds
             before = await self._snapshot()
-            if neutral and before["developer_input"] != 1:
+            if neutral and not before["input_admitted"]:
                 raise ToolFailure(
-                    "capability_unavailable", "Neutral-input recipe requires developer_input=1."
+                    "capability_unavailable",
+                    "Neutral-input recipe requires developer_input=1 and native offline readiness.",
                 )
             failure = None
             captured_receipt = dict(self.receipt or {})
@@ -178,7 +231,10 @@ class Sessions:
                         await self._request("neutral", connected=True)
                     row = await self._snapshot()
                     row["elapsed_ms"] = round((time.monotonic() - started) * 1000)
-                    encoded_bytes += len(json.dumps(row).encode())
+                    serialized_row = json.dumps(row, ensure_ascii=False, indent=2)
+                    # Account for pretty-printed storage and nesting, not just
+                    # compact wire JSON, so overflow can retain partial evidence.
+                    encoded_bytes += len(serialized_row.encode()) + 8 * (serialized_row.count("\n") + 1) + 2
                     if encoded_bytes > self.config.settings.limits.max_trace_bytes - 4096:
                         raise ToolFailure(
                             "trace_overflow", "Trace byte budget exhausted; no unbounded capture allowed."

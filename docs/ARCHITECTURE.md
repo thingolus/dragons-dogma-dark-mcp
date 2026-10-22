@@ -1,6 +1,6 @@
 # Architecture
 
-Version 0.1.0 by Thingolus. The Python MCP server runs outside DDDA and exposes a typed stdio interface. Tools return structured envelopes containing request ID, operation, capture time, duration, provenance, and success or a machine-readable error. Larger results become local artifacts with bounded reads.
+Version 0.2.0 by Thingolus. The Python MCP server runs outside DDDA and exposes a typed stdio interface. Tools return structured envelopes containing request ID, operation, capture time, duration, provenance, and success or a machine-readable error. Larger results become local artifacts with bounded reads.
 
 ## Reuse and source identity
 
@@ -14,7 +14,7 @@ The original plan proposed wrapping the legacy mailbox. The implementation inste
 
 The broker validates the research deployment, offline settings, executable, and normal Windows host before spawning a suspended game process. AppContainer hosts are refused because process enumeration there cannot establish that another game is absent. A shared game-directory lock serializes MCP ownership. The broker records PID and creation time, verifies the offline transport check, loads an inert Frida script, and resumes only its own process. Its watchdog closes that process if the parent or heartbeat disappears.
 
-The agent copies the known 132-byte status ABI and 2448-byte performance ABI into plain JSON. It installs no controller timer and emits no input on load or read. Neutral synthetic input is explicit, bounded, and requires the development/offline checks. No tool accepts arbitrary JavaScript, native addresses to call, or raw memory writes. Stop terminates the owned process without saving; it does not operate the game's UI.
+The agent copies the known 132-byte status ABI and 2448-byte performance ABI into plain JSON. It also reads the transport guard directly: copied fields may remain zero at startup before game callbacks run. A pending native offline state permits guarded observation but never admits neutral gameplay input. It installs no controller timer and emits no input on load or read. Neutral input requires native readiness; a separate fixed title Start recipe is limited to 250 ms once per session with no loaded world and a verified transport guard. No tool accepts arbitrary JavaScript, native addresses to call, or raw memory writes. Stop terminates the owned process without saving.
 
 Session operations are serialized. A mismatched broker response, timeout, or invalid snapshot makes the session unusable rather than replaying an uncertain action. Capture cleanup releases synthetic input. Cancelled and failed captures retain partial evidence and their failure classification.
 
@@ -22,7 +22,9 @@ Session operations are serialized. A mismatched broker response, timeout, or inv
 
 Jobs have durable receipts, bounded concurrency, cancellation, and explicit outcome-unknown handling after loss of the owning process. Artifacts separate summaries from paginated records and include source/build/evidence provenance. Comparisons require compatible evidence and recipes and show changed inputs. Simulated test data is not native gameplay evidence.
 
-Build jobs export the pinned source and pinned MinHook commit into a private run directory, use existing CMake/MSVC tools, and parse CTest JUnit results. They never build inside the active co-op checkout. Ghidra exports use a fixed script, one known symbol, an existing read-only database, hash verification, and a bounded subprocess.
+Build jobs export the pinned source and pinned MinHook commit into a private run directory, use existing CMake/MSVC tools, and parse CTest JUnit results. They never build inside the active co-op checkout. The full suite holds the game lease because its D3D test conflicts with a running fullscreen game. Ghidra exports use a fixed script, one known symbol, an existing read-only database, hash verification, the distribution's VM options, and a bounded subprocess. Explicit CLI commands provide hash-pinned tool installation and database preparation.
+
+The broker stops both its game and command loop on heartbeat expiry or parent death, releasing the lease. Runtime SHA-256 identifies the installed native artifact. The knowledge/source commit does not establish the runtime's compilation provenance; that commit is reported as unknown unless the deployment recorded it.
 
 ## Deployment and saves
 

@@ -2,9 +2,9 @@
 
 A dedicated Model Context Protocol project for faster AI-assisted development of **Dragon's Dogma: Dark Arisen (DDDA / Dragon's Dogma 1)**.
 
-Created by **Thingolus**. Version **0.1.0** implements 24 typed MCP tools and four resource routes over stdio. It reuses the co-op project's pinned research, signatures, runtime ABI, build targets, and deployment conventions.
+Created by **Thingolus**. Version **0.2.0** implements 24 typed MCP tools and four resource routes over stdio. It reuses the co-op project's pinned research, signatures, runtime ABI, build targets, and deployment conventions.
 
-The read-only development workflow has been verified against the real source repository and supported executable. Live sessions, deployment, save operations, and Ghidra export have implementation and automated coverage where practical, but require separate native acceptance. See [validation and remaining gates](docs/VALIDATION.md).
+Verified against the real game: owned startup, copied observations, performance reads, trace comparison/cancellation, competing-client refusal, process cleanup, and deployment rollback. Save restore/undo was tested on a disposable copy, and Ghidra export on a local game database. Loaded-world neutral input remains subject to native offline readiness; it is not counted as passed. See [validation and remaining gates](docs/VALIDATION.md).
 
 | Workflow | Tools |
 | --- | --- |
@@ -42,6 +42,16 @@ uv run python scripts/smoke.py
 The smoke script uses the real stdio transport and local read-only inputs. Unit tests use temporary fixtures. Native acceptance must be performed separately when no other tool or player owns the game.
 
 Read [operations](docs/OPERATIONS.md), [architecture](docs/ARCHITECTURE.md), and [validation](docs/VALIDATION.md). The original [implementation plan](IMPLEMENTATION_PLAN.md) records delivery gates; [reuse-manifest.json](reuse-manifest.json) pins the 42 inventoried upstream files. Private traces, saves, binaries, credentials, and decompiler databases stay outside version control.
+
+Optional Ghidra setup uses the same hash-pinned distributions as the co-op source:
+
+```powershell
+.venv/Scripts/python.exe scripts/setup_ghidra.py
+.venv/Scripts/python.exe scripts/prepare_ghidra.py --analyze
+.venv/Scripts/python.exe scripts/decompile_smoke.py
+```
+
+Database preparation is an explicit CLI operation; ordinary MCP decompilation opens an existing database read-only. Native acceptance scripts are described in operations and should run when DDDA is closed.
 
 ## Credits and license
 

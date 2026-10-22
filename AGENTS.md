@@ -1,6 +1,6 @@
 # Dragons Dogma Dark MCP implementation instructions
 
-Read `README.md`, `docs/VALIDATION.md`, `IMPLEMENTATION_PLAN.md`, and `reuse-manifest.json` before changes. This checkout contains the version 0.1 MCP implementation; the validation document separates verified behavior from remaining native acceptance.
+Read `README.md`, `docs/VALIDATION.md`, `IMPLEMENTATION_PLAN.md`, and `reuse-manifest.json` before changes. This checkout contains the version 0.2 MCP implementation; the validation document separates verified behavior from remaining native acceptance.
 
 - Keep this project independent from the sibling co-op repository. Do not stage, commit, reset, or overwrite that repository's active changes.
 - Use the pinned upstream commit as the reproducible starting point. Record any newer commit explicitly before adopting it. Never describe uncommitted upstream work as part of the pinned baseline.
