@@ -1,0 +1,37 @@
+# Local configuration and credentials
+/config/local.json
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Local tools, environments and generated results
+.venv/
+.tools/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+build/
+dist/
+*.egg-info/
+artifacts/
+private/
+cache/
+logs/
+*.log
+
+# Game files, saves, traces and reverse-engineering databases
+*.exe
+*.dll
+*.sav
+*.dmp
+*.gpr
+*.rep/
+*.idb
+*.i64
+*.zip
+*.7z
+*.arc
+*.pdb

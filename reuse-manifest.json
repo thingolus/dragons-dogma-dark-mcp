@@ -1,0 +1,251 @@
+{
+  "schema_version": 1,
+  "project": "Dragons Dogma Dark MCP",
+  "created_date": "2026-10-22",
+  "status": "planning-inventory; no implementation copied",
+  "upstream": {
+    "repository": "https://github.com/thingolus/ddda-local-coop",
+    "commit": "61ed1bf830141b75981babe362cef42579eb98e3",
+    "local_path_hint": "../ddda-local-coop",
+    "original_source_license": "MIT",
+    "dirty_worktree_observed": true,
+    "dirty_changes_included": false
+  },
+  "game_adapter": {
+    "architecture": "x86",
+    "steam_app_id": 367500,
+    "steam_build_id": "2364871",
+    "expected_executable_sha256": "19facc2642f79a09d14ce55eace5f228161f2f8bab60ec67eb3c6196cc6277b8",
+    "named_signature_records_at_pinned_commit": 216,
+    "input_thunks_at_pinned_commit": 3
+  },
+  "source_file_count": 42,
+  "components": [
+    {
+      "component": "executable_and_static_analysis",
+      "strategy": "adapt into inert functions with explicit paths and bounded output",
+      "files": [
+        {
+          "path": "scripts/inspect_game.py",
+          "git_blob_sha1": "139987edfc857f08512b912e44f78649c8ba06c1"
+        },
+        {
+          "path": "scripts/static_probe.py",
+          "git_blob_sha1": "b21e864da3aba42f3c3d19568b6f94c642d23da3"
+        },
+        {
+          "path": "scripts/member_refs.py",
+          "git_blob_sha1": "b651284ff7264a4c476907e1f019a3c857dfff5c"
+        }
+      ]
+    },
+    {
+      "component": "symbols_and_evidence",
+      "strategy": "derive searchable index; preserve authoritative upstream records",
+      "files": [
+        {
+          "path": "research/symbols.csv",
+          "git_blob_sha1": "626a689d6ba381f386702f82c0011b85253a1099"
+        },
+        {
+          "path": "include/coop/supported_build.hpp",
+          "git_blob_sha1": "52a57e4751710e47a35c525c13d315dbfc61f3e3"
+        },
+        {
+          "path": "scripts/generate_runtime_manifest.py",
+          "git_blob_sha1": "571821284b35987fd5be9171d50467c0a5b2221c"
+        },
+        {
+          "path": "docs/STATUS.md",
+          "git_blob_sha1": "cf1267b68afe56731e094169cc97342001dbbc6e"
+        },
+        {
+          "path": "docs/BACKLOG.md",
+          "git_blob_sha1": "baac53ead2501967ad2dea5717ba8b6da9ae5768"
+        },
+        {
+          "path": "docs/ARCHITECTURE.md",
+          "git_blob_sha1": "c8234cd635faf6e45f8157dd9f5195b36cbfe54b"
+        },
+        {
+          "path": "docs/DECISIONS.md",
+          "git_blob_sha1": "0d0eb86bb499a8dcd5ad7d501f991d4f90ea2779"
+        },
+        {
+          "path": "docs/TEST_PLAN.md",
+          "git_blob_sha1": "93c0b17b22f6cad14c71405e583a48c5137b5d17"
+        }
+      ]
+    },
+    {
+      "component": "guarded_session_and_export",
+      "strategy": "wrap behind exclusive coordinator; do not expose arbitrary evaluate",
+      "files": [
+        {
+          "path": "scripts/research_host.py",
+          "git_blob_sha1": "11f6618c2624da7abf0225fc9c67e2778f3ef2f7"
+        },
+        {
+          "path": "scripts/research_command.py",
+          "git_blob_sha1": "ee3f3e10e8e60dcca4b9c79c911542af373486bf"
+        },
+        {
+          "path": "scripts/research_export.py",
+          "git_blob_sha1": "0c8c9f3dfe2f69eab12eff1e9edbee400e0eb3d4"
+        },
+        {
+          "path": "scripts/research_offline.js",
+          "git_blob_sha1": "c1d797ff881d4de319a6ac1edac53874f1595976"
+        }
+      ]
+    },
+    {
+      "component": "runtime_diagnostics",
+      "strategy": "extract definition-only readers; runtime_api.js starts synthetic input and must not be loaded wholesale",
+      "files": [
+        {
+          "path": "include/coop/runtime_status.hpp",
+          "git_blob_sha1": "184c5e8d0383d670440a6ce1ecaac2c3d8fee448"
+        },
+        {
+          "path": "src/runtime.cpp",
+          "git_blob_sha1": "d8099ce774fffd2a2b35090fe0efdbbf2a5aa897"
+        },
+        {
+          "path": "research/runtime_api.js",
+          "git_blob_sha1": "574e3e4a8f8e57d115909bee6ee93267bc24106f"
+        },
+        {
+          "path": "research/performance_status.js",
+          "git_blob_sha1": "930018c57f4820d8c80e023bd077244d6970760c"
+        },
+        {
+          "path": "research/observe_performance.js",
+          "git_blob_sha1": "61c6b9b7e550b4dccc415bc8b87d6dbd40bea8f6"
+        },
+        {
+          "path": "research/observe_input_latency.js",
+          "git_blob_sha1": "c9d46ea4147db13499072093b265148624a7cf4f"
+        },
+        {
+          "path": "scripts/collect_process_cpu.py",
+          "git_blob_sha1": "0e7d85013b1fa96ffb5e8b638abbbc1c090afeb2"
+        },
+        {
+          "path": "scripts/collect_process_memory.py",
+          "git_blob_sha1": "2efd46e1de3ce5f02c22f19c61a89528fcacc667"
+        }
+      ]
+    },
+    {
+      "component": "build_and_regression",
+      "strategy": "invoke pinned scripts in isolated checkout through curated typed recipes",
+      "files": [
+        {
+          "path": "scripts/Build.ps1",
+          "git_blob_sha1": "2c1a532d0b2b8ef6a1a7cbc80a84b6c5e9be9d27"
+        },
+        {
+          "path": "CMakeLists.txt",
+          "git_blob_sha1": "6da139de2b666f87371bfd384a72cc24fcfba2e8"
+        },
+        {
+          "path": "scripts/validate_generic_runtime.py",
+          "git_blob_sha1": "d145e858b47eec7b76b3a883696dc04c9222d1ff"
+        },
+        {
+          "path": "scripts/validate_bow_slots_lifecycle.py",
+          "git_blob_sha1": "37ad5e77f10693f9e58d9da8133c4b7ade580547"
+        },
+        {
+          "path": "scripts/check_shared_lifecycle.py",
+          "git_blob_sha1": "81822109685fd12e781e782772a76839ed25abfe"
+        },
+        {
+          "path": "tests/performance_status_reader_tests.js",
+          "git_blob_sha1": "51258f93a98f0ae16835535bf25e67d2977abd78"
+        }
+      ]
+    },
+    {
+      "component": "ghidra",
+      "strategy": "reuse existing local database and bounded exports; serialize database access",
+      "files": [
+        {
+          "path": "scripts/Invoke-Ghidra.ps1",
+          "git_blob_sha1": "b67cc8d364e7d67fd0d638cd9374d50ea1088c32"
+        },
+        {
+          "path": "scripts/ghidra/ExportResearch.java",
+          "git_blob_sha1": "e64d634d97b47f0835dbde455cf45e922979d724"
+        },
+        {
+          "path": "scripts/ghidra/DefineResearch.java",
+          "git_blob_sha1": "8bb5d4d9b56b67300992f185d4a2addceb324b99"
+        }
+      ]
+    },
+    {
+      "component": "deployment_and_packaging",
+      "strategy": "later-stage adaptation with ownership, backup and game-closed checks",
+      "files": [
+        {
+          "path": "scripts/deploy_runtime.py",
+          "git_blob_sha1": "2f1fecaa962e579535c1a6f06c056c47d6eccf6b"
+        },
+        {
+          "path": "scripts/Backup-Saves.ps1",
+          "git_blob_sha1": "868d9858208f473718732cf4b2d468b4951c7716"
+        },
+        {
+          "path": "scripts/prepare_loader_migration.py",
+          "git_blob_sha1": "0b72200a9e0288e8afa563cb5125a774b76ccf5b"
+        },
+        {
+          "path": "scripts/stage_xinput_drop_in.py",
+          "git_blob_sha1": "d4af33f91eb24637c273b67ecbca6402b7714fd9"
+        },
+        {
+          "path": "scripts/stage_dinput_drop_in.py",
+          "git_blob_sha1": "af050f6d55a1525027ec5d48612063ea7646d97e"
+        },
+        {
+          "path": "scripts/verify_dual_loader_release.py",
+          "git_blob_sha1": "fdeec2f342e5f2225c9bd5add85fb74ff1356126"
+        }
+      ]
+    },
+    {
+      "component": "dependency_and_license_provenance",
+      "strategy": "reuse pins where compatible; retain notices when copying code",
+      "files": [
+        {
+          "path": "requirements.lock.txt",
+          "git_blob_sha1": "f283294c4d3f5dd72b11bb79c88e55cca81b3b5e"
+        },
+        {
+          "path": "tools.lock.json",
+          "git_blob_sha1": "61e91c1c5f4754905caafa25ad53715945426c32"
+        },
+        {
+          "path": "LICENSE",
+          "git_blob_sha1": "cbb8dc9fbfd6a41c6f5ff66d4fc369dc13dd7991"
+        },
+        {
+          "path": "CREDITS.md",
+          "git_blob_sha1": "4ce8ca8f734bc3181bc4fe4793ba709c5c4e7300"
+        }
+      ]
+    }
+  ],
+  "evidence_globs": [
+    "research/EXP-*.md"
+  ],
+  "notes": [
+    "Git blob identities identify committed source, not local working-tree bytes.",
+    "Resolve the pinned commit and verify each blob before adapting or executing it.",
+    "Experiment documents may include historical claims; retain evidence scope and build identity.",
+    "Private evidence, game binaries, saves, tools and decompiler databases are excluded.",
+    "Do not load research/runtime_api.js for read-only status: it starts a synthetic-input timer."
+  ]
+}
