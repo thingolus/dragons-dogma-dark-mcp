@@ -10,6 +10,7 @@ from pathlib import Path
 from .artifacts import Artifacts
 from .common import ToolFailure, read_json, utc_now
 from .config import Config
+from .death import POINTER_COLUMNS, decode_death
 from .ownership import game_processes, stop_owned
 from .recipes import MOVEMENT
 
@@ -167,7 +168,29 @@ class Sessions:
                 return status
             if group == "performance":
                 return {"runtime": status, "performance": await self._request("performance")}
-            raise ToolFailure("invalid_parameters", "group must be runtime or performance.")
+            if group == "death_refusals":
+                if status.get("developer_input") != 1 or status.get("faults") != 0:
+                    raise ToolFailure(
+                        "diagnostic_admission_failed", "Diagnostic needs a healthy developer runtime."
+                    )
+                words = await self._request("death_refusals")
+                decoded = decode_death(words)
+                # Defense in depth for retained replay data; never store raw pointers.
+                words = list(words)
+                for row in range(8):
+                    for column in POINTER_COLUMNS:
+                        words[8 + row * 64 + column] = 0
+                receipt = self.artifacts.put(
+                    "death_diagnostic",
+                    {"summary": decoded["summary"], "words": words, "decoded": decoded},
+                    {
+                        "session": self.receipt,
+                        "source_commit": self.config.settings.coop_source_commit,
+                        "evidence_class": "native_observation",
+                    },
+                )
+                return {"runtime": status, "death_refusals": decoded, **receipt}
+            raise ToolFailure("invalid_parameters", "group must be runtime, performance or death_refusals.")
 
     async def dismiss_title(self) -> dict:
         """One fixed Start press, with no A/confirm/navigation or save loading."""

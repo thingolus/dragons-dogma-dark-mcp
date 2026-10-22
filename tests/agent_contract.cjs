@@ -4,6 +4,7 @@ const fs = require('node:fs');
 const vm = require('node:vm');
 let inputCalls = 0, statusSize = 132, statusVersion = 2, stage = 0, lastButtons = 0;
 let generation = 0, observed = 0, menu = 0, physical = 0, offline = 1, lastPads;
+let developer = 1, deathAccepted = 1, deathVersion = 1, deathCalls = 0, deathMissing = false;
 class Pointer {
   constructor(buffer, offset=0) { this.buffer=buffer; this.offset=offset; }
   add(n) { return new Pointer(this.buffer,this.offset+n); }
@@ -19,13 +20,13 @@ class Pointer {
 }
 const context = {
   Process:{arch:'ia32',pointerSize:4, mainModule:{base:{toString:()=> '0x400000'}},
-           getModuleByName:()=>({getExportByName:name=>name})},
+           getModuleByName:()=>({getExportByName:name=>{if(deathMissing && name==='CoopSharedLifeDownDebugStatus')throw Error('missing');return name;}})},
   Memory:{alloc:n=>new Pointer(Buffer.alloc(n))},
   NativeFunction:function(name) {
     if(name==='OfflineState') return ()=>2;
     if(name==='CoopGetStatus') return (p,size)=>{
       assert.equal(size,132); p.writeU32(statusSize); p.add(4).writeU32(statusVersion);
-      p.add(8).writeU32(2);p.add(24).writeU32(2);p.add(28).writeU32(offline);p.add(52).writeU32(1);
+      p.add(8).writeU32(2);p.add(24).writeU32(2);p.add(28).writeU32(offline);p.add(52).writeU32(developer);
       p.add(40).writeU32(stage);
       p.add(12).writeU32(2); p.add(16).writeU32(3);
       p.add(44).writeU32(generation); p.add(48).writeU32(physical); p.add(56).writeU32(menu);
@@ -35,6 +36,13 @@ const context = {
     if(name==='CoopGetPerformanceStatus') return (p,size)=>{
       assert.equal(size,2448);p.writeU32(2448);p.add(4).writeU32(1);
       p.buffer.writeBigUInt64LE(9007199254740993n,16); return 1;
+    };
+    if(name==='CoopSharedLifeDownDebugStatus') return (p,count)=>{
+      deathCalls++;assert.equal(count,520);assert.equal(p.buffer.length,2080);
+      [2080,deathVersion,64,8,0,0,0,0].forEach((n,i)=>p.add(i*4).writeU32(n));
+      for(let row=0;row<8;row++) for(const col of [4,14,15,16,17,18,19,20,36])
+        p.add((8+row*64+col)*4).writeU32(0xdecafbad);
+      return deathAccepted;
     };
     if(name==='CoopSetTestPads') return (p,count)=>{ assert.equal(count,4);lastPads=Buffer.from(p.buffer);lastButtons=p.buffer.readUInt16LE(8);inputCalls++;return 1; };
     throw Error('Unexpected native call: '+name);
@@ -74,4 +82,13 @@ for (const guard of ['menu','physical','offline','generation']) {
   menu=physical=0;offline=generation=1;
 }
 context.rpc.exports.neutral(false);assert.ok(lastPads.every(b=>b===0));
-console.log('agent contract passed: inert load, no-input reads, ABI refusal, exact uint64, explicit input only');
+const priorInputs=inputCalls;
+const death=context.rpc.exports.deathRefusals();
+assert.equal(death.length,520);assert.ok(!death.includes(0xdecafbad));assert.equal(inputCalls,priorInputs);
+developer=0;const priorDeaths=deathCalls;
+assert.throws(()=>context.rpc.exports.deathRefusals(),/diagnostic_admission_failed/);assert.equal(deathCalls,priorDeaths);
+developer=1;deathMissing=true;assert.throws(()=>context.rpc.exports.deathRefusals(),/diagnostic_unavailable/);
+deathMissing=false;deathAccepted=0;assert.throws(()=>context.rpc.exports.deathRefusals(),/diagnostic_refused/);
+deathAccepted=1;deathVersion=2;assert.throws(()=>context.rpc.exports.deathRefusals(),/abi_mismatch/);
+assert.equal(inputCalls,priorInputs);
+console.log('agent contract passed: inert load, no-input reads, ABI refusal, exact uint64, explicit input only, redacted death diagnostics');

@@ -1,6 +1,8 @@
 # Operations
 
-Version 0.4.1 by Thingolus. Configuration is read from ignored `config/local.json` or the `--config` path. Start with `config/local.example.json`; unknown configuration fields are rejected. Relative paths resolve against the project, not the caller's working directory. Run `--check` before connecting a client.
+Version 0.5.0 by Thingolus. Configuration is read from ignored `config/local.json` or the `--config` path. Start with `config/local.example.json`; unknown configuration fields are rejected. Relative paths resolve against the project, not the caller's working directory. Run `--check` before connecting a client.
+
+Preflight now reports committed upstream drift and exits 2 for review-required changes, 3 for incompatible changes, or 1 when the check is unavailable. See [compatibility checks](UPSTREAM_COMPATIBILITY.md). Use [death/refusal diagnostics](DIAGNOSTICS.md) for the copied developer ring and offline replay.
 
 ## Codex connection
 

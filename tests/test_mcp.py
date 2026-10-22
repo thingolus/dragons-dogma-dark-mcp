@@ -15,7 +15,7 @@ def test_real_sdk_tools_resources_and_errors(config):
         async with Client(server) as client:
             tools = await client.list_tools()
             names = {tool.name for tool in tools.tools}
-            assert len(names) == 30
+            assert len(names) == 32
             assert {"inspect_build", "search_knowledge", "start_session", "rollback_deployment"} <= names
             assert all(tool.output_schema for tool in tools.tools)
             catalog = await client.call_tool("list_scenarios", {})

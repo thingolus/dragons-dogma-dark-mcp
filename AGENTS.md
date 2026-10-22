@@ -1,6 +1,6 @@
 # Dragons Dogma Dark MCP implementation instructions
 
-Read `README.md`, `docs/VALIDATION.md`, `IMPLEMENTATION_PLAN.md`, and `reuse-manifest.json` before changes. This checkout contains the version 0.4 MCP implementation; the validation document separates verified behavior from remaining native acceptance.
+Read `README.md`, `docs/VALIDATION.md`, `IMPLEMENTATION_PLAN.md`, and `reuse-manifest.json` before changes. This checkout contains the version 0.5 MCP implementation; the validation document separates verified behavior from remaining native acceptance.
 
 - Keep this project independent from the sibling co-op repository. Do not stage, commit, reset, or overwrite that repository's active changes unless the user explicitly requests a cross-repository checkpoint. The 22 October 2026 sync request authorizes the committed 1.8 source checkpoint and reviewed MCP baseline refresh.
 - Use the pinned upstream commit as the reproducible starting point. Record any newer commit explicitly before adopting it. Never describe uncommitted upstream work as part of the pinned baseline.
@@ -18,3 +18,5 @@ Read `README.md`, `docs/VALIDATION.md`, `IMPLEMENTATION_PLAN.md`, and `reuse-man
 - Keep release packages limited to code, documentation, configuration examples and synthetic fixtures. Run the archive audit before uploading assets. Call encodings and lexical function contexts remain candidates until independently verified.
 
 Preserve the user's requested Thingolus credit and MIT copyright/license notices. Run the Python tests and Ruff checks after behavioral changes; use the read-only stdio smoke for integration changes. Never convert synthetic checks into claims of native acceptance.
+
+Death diagnostic rows are bounded refusal evidence, not proof of Game Over causality. Preserve null for unevaluated predicates and strip raw pointers inside the native adapter. Keep the reviewed upstream contract synchronized with deliberate adapter/pin changes; never regenerate it merely to hide drift.

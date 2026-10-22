@@ -47,7 +47,13 @@ def stage(root=ROOT):
         names = archive.namelist()
         # Wheel metadata members have fixed extensionless names.
         audit_names(names)
-        assert {"ddda_mcp/agent.js", "ddda_mcp/ExportMcp.java", "ddda_mcp/recipes.py"} <= set(names)
+        assert {
+            "ddda_mcp/agent.js",
+            "ddda_mcp/ExportMcp.java",
+            "ddda_mcp/recipes.py",
+            "ddda_mcp/death.py",
+            "ddda_mcp/upstream_contract.json",
+        } <= set(names)
         metadata = archive.read(next(n for n in names if n.endswith(".dist-info/METADATA"))).decode()
         assert f"Version: {version}\n" in metadata and "Thingolus" in metadata
         assert any(n.endswith("/licenses/LICENSE") for n in names)

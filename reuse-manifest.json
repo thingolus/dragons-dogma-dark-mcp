@@ -2,7 +2,7 @@
   "schema_version": 1,
   "project": "Dragons Dogma Dark MCP",
   "created_date": "2026-10-22",
-  "status": "v0.4.1 synchronized to committed co-op 1.8 candidate; 225 named signatures and three input thunks; loaded-world MCP input remains unverified",
+  "status": "v0.5 death/refusal decoding and reviewed upstream compatibility gates; committed co-op 1.8 baseline with 225 named signatures and three input thunks; loaded-world MCP input remains unverified",
   "validation_document": "docs/VALIDATION.md",
   "implementation_adaptations": {
     "scripts/inspect_game.py and static probe conventions": "src/ddda_mcp/binary.py",
@@ -10,7 +10,8 @@
     "research host ownership and offline checks": "src/ddda_mcp/native_worker.py and session.py (dedicated typed broker)",
     "build targets and tools.lock.json pins": "src/ddda_mcp/build.py (isolated source archive)",
     "research deployment ownership manifests": "src/ddda_mcp/deployment.py",
-    "Ghidra export conventions": "src/ddda_mcp/ExportMcp.java"
+    "Ghidra export conventions": "src/ddda_mcp/ExportMcp.java",
+    "shared_life_down_debug.hpp and runtime.cpp recorder layout": "src/ddda_mcp/death.py and agent.js; source hashes reviewed in upstream_contract.json"
   },
   "upstream": {
     "repository": "https://github.com/thingolus/ddda-local-coop",

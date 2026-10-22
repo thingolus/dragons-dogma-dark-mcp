@@ -20,7 +20,9 @@ from .binary import Binary
 from .build import Builds
 from .common import ToolFailure, utc_now
 from .comparison import Comparisons
+from .compatibility import Compatibility
 from .config import Config
+from .death import decode_death
 from .deployment import Deployment
 from .investigation import Investigations
 from .jobs import Jobs
@@ -64,6 +66,7 @@ class Application:
         self.deployment = Deployment(config)
         self.saves = Saves(config)
         self.comparisons = Comparisons(config, self.source, self.artifacts)
+        self.compatibility = Compatibility(config, self.source, self.artifacts)
         self.investigations = Investigations(
             config, self.source, self.knowledge, self.binary, self.builds, self.artifacts
         )
@@ -80,6 +83,7 @@ class Application:
             "upstream": verified,
             "upstream_worktree_dirty": bool(status),
             "dirty_worktree_used": False,
+            "upstream_compatibility": self.compatibility.status(),
             "knowledge_documents": len(self.source.knowledge_paths()),
             "capabilities": [
                 "pinned_source",
@@ -89,6 +93,8 @@ class Application:
                 "investigation_bundles",
                 "source_revision_comparison",
                 "named_build_comparison",
+                "death_refusal_diagnostics",
+                "upstream_compatibility_gate",
                 "jobs",
                 "artifacts",
                 "owned_native_sessions",
@@ -275,9 +281,21 @@ def create_server(config: Config, config_path: Path | None = None) -> tuple[MCPS
         return await app.invoke("stop_session", app.sessions.stop)
 
     @mcp.tool(annotations=Read)
-    async def runtime_snapshot(group: Literal["runtime", "performance"] = "runtime") -> Result:
+    async def runtime_snapshot(
+        group: Literal["runtime", "performance", "death_refusals"] = "runtime",
+    ) -> Result:
         """Read copied, ABI-checked state from this server's owned guarded game. Never supplies input."""
         return await app.invoke("runtime_snapshot", app.sessions.snapshot, group)
+
+    @mcp.tool(annotations=Read)
+    async def decode_death_diagnostic(
+        words: Annotated[
+            list[Annotated[int, Field(strict=True, ge=0, le=4294967295)]],
+            Field(min_length=520, max_length=520),
+        ],
+    ) -> Result:
+        """Replay one copied down-refusal ring offline. Returns evaluated predicates, reasons and chronology without pointers; no game access or gameplay proof."""
+        return await app.invoke("decode_death_diagnostic", decode_death, words)
 
     @mcp.tool(annotations=Write)
     async def capture_trace(
@@ -345,6 +363,11 @@ def create_server(config: Config, config_path: Path | None = None) -> tuple[MCPS
             )
 
         return await app.invoke("investigate_symbol", submit)
+
+    @mcp.tool(annotations=Read)
+    async def check_upstream_compatibility(candidate_commit: str | None = None) -> Result:
+        """Compare local HEAD or a full upstream SHA against the reviewed adapter contract: signatures, exports, layouts, defaults and build inputs. Never fetches, repins or deploys."""
+        return await app.invoke("check_upstream_compatibility", app.compatibility.check, candidate_commit)
 
     @mcp.tool(annotations=Read)
     async def compare_source_revisions(

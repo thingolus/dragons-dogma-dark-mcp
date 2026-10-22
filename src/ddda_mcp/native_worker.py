@@ -124,6 +124,8 @@ def run(config: Config, session_id: str, receipt_path: Path) -> None:
                         value = script.exports_sync.snapshot()
                     elif op == "performance":
                         value = script.exports_sync.performance()
+                    elif op == "death_refusals":
+                        value = script.exports_sync.death_refusals()
                     elif op == "neutral" and type(request.get("connected")) is bool:
                         value = script.exports_sync.neutral(request["connected"])
                     elif op == "title_start" and type(request.get("pressed")) is bool:

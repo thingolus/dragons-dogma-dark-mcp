@@ -35,7 +35,7 @@ jobs:
         run: |
           python -m pip install uv==0.13.4
           uv sync --locked
-      - name: Style and synthetic regression
+      - name: Style, diagnostics and compatibility regression
         run: |
           uv run --locked ruff check src tests scripts
           uv run --locked ruff format --check src tests scripts

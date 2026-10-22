@@ -2,7 +2,7 @@
 
 **Date:** 22 October 2026
 
-**Delivery state:** version 0.4.1 implemented, adding investigation bundles, source/build comparisons, and automated regression/release packaging to Codex integration, journaled recovery and six recipes. This document retains the original design and acceptance gates; current behavior and verification are documented in [README.md](README.md), [operations](docs/OPERATIONS.md), and [validation](docs/VALIDATION.md). The native acceptance gates are not all complete. Estimates below are planning estimates, not measured delivery or speedup claims.
+**Delivery state:** version 0.5.0 implemented, adding death/refusal decoding and automated upstream compatibility gates to investigation bundles, source/build comparisons, release automation, Codex integration, journaled recovery and six recipes. This document retains the original design and acceptance gates; current behavior and verification are documented in [README.md](README.md), [operations](docs/OPERATIONS.md), and [validation](docs/VALIDATION.md). The native acceptance gates are not all complete. Estimates below are planning estimates, not measured delivery or speedup claims.
 
 **Primary source:** [ddda-local-coop at `61ed1bf`](https://github.com/thingolus/ddda-local-coop/tree/61ed1bf830141b75981babe362cef42579eb98e3).
 

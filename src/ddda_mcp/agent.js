@@ -40,6 +40,24 @@ function performance() {
     clock_failures:p.add(48).readU64().toString(),start_failures:p.add(56).readU64().toString(),
     coverage:'Existing callback-span instrumentation only; reading does not begin or seal collection.'};
 }
+function deathRefusals() {
+  const s = snapshot();
+  if (s.runtime !== 2 || s.guard_transport !== 2 || s.native_errors !== 0 ||
+      s.faults !== 0 || s.developer_input !== 1) throw Error('diagnostic_admission_failed');
+  let address;
+  try { address = runtime().getExportByName('CoopSharedLifeDownDebugStatus'); }
+  catch (_) { throw Error('diagnostic_unavailable: runtime lacks down-refusal export'); }
+  const p = Memory.alloc(2080);
+  if (new NativeFunction(address,'int',['pointer','uint'],'mscdecl')(p,520) !== 1)
+    throw Error('diagnostic_refused');
+  const words = Array.from({length:520}, (_, i) => p.add(i*4).readU32());
+  if (words[0] !== 2080 || words[1] !== 1 || words[2] !== 64 || words[3] !== 8 ||
+      words[4] > 8 || words[5] >= 8) throw Error('abi_mismatch');
+  // Strip caller and opaque game addresses before crossing the adapter boundary.
+  for (let row=0; row<8; row++)
+    for (const column of [4,14,15,16,17,18,19,20,36]) words[8+row*64+column]=0;
+  return words;
+}
 function neutralInput(connected) {
   const s = snapshot();
   if (s.runtime !== 2 || s.developer_input !== 1 || s.transport !== 2 || s.guard_transport !== 2 || s.native_offline !== 1 || s.native_errors !== 0 || s.faults !== 0)
@@ -52,7 +70,7 @@ function neutralInput(connected) {
   return true;
 }
 rpc.exports = {
-  snapshot, performance,
+  snapshot, performance, deathRefusals,
   movementPulse(recipe, stage, generation) {
     const definitions = {p1_step_forward:[0,12],p1_step_right:[0,10],p2_step_forward:[1,12]};
     if (!Object.hasOwn(definitions, recipe) || !Number.isInteger(stage) || !Number.isInteger(generation))

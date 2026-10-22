@@ -1,12 +1,20 @@
 # Validation and remaining acceptance
 
-Version **0.4.1**, validated on 22 October 2026. Creator: **Thingolus**. This record distinguishes implementation tests, real native observations, and the remaining loaded-game input gate. Native observations below were established during v0.2. Version 0.3 added client integration, recoverable saves, recipes and benchmarks; v0.4 added static investigation, source/build comparisons and release automation without launching DDDA.
+Version **0.5.0**, validated on 22 October 2026. Creator: **Thingolus**. This record distinguishes implementation tests, real native observations, and the remaining loaded-game input gate. Native observations below were established during v0.2. Version 0.3 added client integration, recoverable saves, recipes and benchmarks; v0.4 added static investigation, source/build comparisons and release automation without launching DDDA.
+
+## Refusal diagnostics and compatibility gates
+
+Version 0.5 adds a native copied-value reader for the 2080-byte/520-word death-refusal ring, offline replay and conservative upstream drift detection. All 142 tests pass on Windows, including short-circuit null predicates, wrapped/saturated ring sequences, exact 64-bit values, nonfinite HP, malformed layouts/masks, redacted replay artifacts, disabled profiles and the actual shipped JavaScript under a synthetic Frida contract. Synthetic native reads verify word-count versus byte-count, missing exports, refused calls and zero controller-input calls.
+
+Compatibility regression tests use independent committed synthetic repositories and mutations: changed ABI source, signatures, calling convention, missing exports, game fingerprint, unsafe defaults, missing contract inputs, immutable revision validation, dirty-file exclusion and bounded reports. The shipped reviewed contract matches the real `e6a64c2` baseline; automatic preflight reports `unchanged`. An explicit fetch/check command is available without changing the checkout or reviewed pin. The Windows/Linux CI runs these regressions without private upstream credentials.
+
+The new diagnostic's loaded-game capture has **not** been verified. Offline replay is not a claim that a synthetic record occurred in the game or that the unresolved Game Over is fixed. No co-op source, game file, deployment, save or shared-life reserve was changed in this milestone. See [diagnostic semantics](DIAGNOSTICS.md) and [compatibility scope](UPSTREAM_COMPATIBILITY.md).
 
 ## Current co-op baseline refresh
 
 The user's synchronization request promoted the completed co-op source checkpoint to `main` at `e6a64c28d24bf4abda26887b0edeccc8bfd9b2a4`; the remote has no `master` branch. MCP defaults, example/local configuration and all 42 reuse-manifest identities now use that commit. The source checkpoint includes narrative research, original artwork and synthetic test fixtures; raw local acceptance receipts and packaged binaries remain local.
 
-All 225 named signatures and three input thunks match the supported executable. All 219 previous records are unchanged; the nine additions cover NPC damage attribution, restricted-container hits and pickup rendering. The existing status (132 bytes/version 2), performance (2448 bytes/version 1) and four-pad input ABI is unchanged. The new developer-only down-refusal diagnostic is not exposed by this MCP update.
+All 225 named signatures and three input thunks match the supported executable. All 219 previous records are unchanged; the nine additions cover NPC damage attribution, restricted-container hits and pickup rendering. The existing status (132 bytes/version 2), performance (2448 bytes/version 1) and four-pad input ABI is unchanged. The developer-only down-refusal diagnostic was not exposed in v0.4.1; v0.5 adds the reader described above.
 
 Fresh checks passed: 110 Python tests, Ruff lint/format, the real 30-tool stdio handshake, all nine new symbol lookups, EXP-089 research retrieval and a complete `npc_damage_source_context` investigation. The index now contains 139 documents. An isolated Debug build of the exact committed source passed all 125 CTest entries, including D3D. Build job `766eebd19d8e4ce6923b2207adc8e2ee`, artifact `c9bbabf10fa6445e89727498545ba1b6`, artifact SHA-256 `a30912f3941964a808c39d4a88a364c2cc4deb3fb0a7e64b078b46acb2531e47`. Co-op packaging tests also passed 144 cases and five synthetic observer suites.
 
@@ -16,8 +24,8 @@ No game launch, deployment or save mutation was performed during this refresh. T
 
 | Check | Evidence |
 | --- | --- |
-| Python suite | 110 tests passed on Python 3.13 / Windows; Ruff lint and format checks pass. |
-| Real MCP stdio | 30 typed tools with output schemas and four resource routes; actual client calls against the server subprocess. |
+| Python suite | 142 tests passed on Python 3.13 / Windows; Ruff lint and format checks pass. |
+| Real MCP stdio | 32 typed tools with output schemas and four resource routes; actual client calls against the server subprocess. |
 | Codex connection | `dragons-dogma-dark` registered through Codex CLI; saved command verified by a real stdio handshake and v0.4 project-status call. Re-running registration preserved the identical entry. Existing chats may need a new session for discovery. |
 | Investigation bundle | Real `pawn_delete` bundle collected five research excerpts, source passages, disassembly, absolute references, bounded candidate caller scan and Ghidra export. Zero caller candidates in this bounded scan is not proof of no callers. |
 | Source comparison | On the v0.4 baseline, real pinned commit versus its parent reported 71 changed files, paginated in groups up to 50, with ABI/settings review hints. Tests verify dirty checkout exclusion, pagination and runtime-signature differences. |

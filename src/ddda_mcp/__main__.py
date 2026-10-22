@@ -54,7 +54,12 @@ def main():
                             indent=2,
                         )
                     )
-                    return 0 if status.structured_content["success"] else 1
+                    if not status.structured_content["success"]:
+                        return 1
+                    compatibility = status.structured_content["data"].get("upstream_compatibility", {})
+                    return {"unchanged": 0, "review_required": 2, "incompatible": 3}.get(
+                        compatibility.get("status"), 1
+                    )
                 finally:
                     await app.close()
 
