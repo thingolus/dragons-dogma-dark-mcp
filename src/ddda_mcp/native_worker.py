@@ -16,6 +16,8 @@ from .common import ToolFailure, atomic_json, utc_now
 from .config import GAME_SHA256, Config
 from .deployment import installed, verify_offline_settings
 from .ownership import game_lease, require_closed, stop_owned
+from .recipes import MOVEMENT
+from .saves import Saves
 
 
 def emit(value):
@@ -62,6 +64,7 @@ def run(config: Config, session_id: str, receipt_path: Path) -> None:
 
     with game_lease(config.game):
         require_closed()
+        Saves(config).require_clear()
         build = Binary(config).inventory()
         if build["sha256"] != GAME_SHA256:
             raise ToolFailure("unsupported_build", "No native adapter exists for this executable.")
@@ -125,6 +128,15 @@ def run(config: Config, session_id: str, receipt_path: Path) -> None:
                         value = script.exports_sync.neutral(request["connected"])
                     elif op == "title_start" and type(request.get("pressed")) is bool:
                         value = script.exports_sync.title_start(request["pressed"])
+                    elif (
+                        op == "movement_pulse"
+                        and request.get("recipe") in MOVEMENT
+                        and type(request.get("stage")) is int
+                        and type(request.get("generation")) is int
+                    ):
+                        value = script.exports_sync.movement_pulse(
+                            request["recipe"], request["stage"], request["generation"]
+                        )
                     elif op == "stop":
                         emit({"id": request["id"], "ok": True, "value": {"stopping": True}})
                         break

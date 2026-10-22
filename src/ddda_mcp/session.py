@@ -11,6 +11,7 @@ from .artifacts import Artifacts
 from .common import ToolFailure, read_json, utc_now
 from .config import Config
 from .ownership import game_processes, stop_owned
+from .recipes import MOVEMENT
 
 
 class Sessions:
@@ -24,6 +25,7 @@ class Sessions:
         self.error_stream = None
         self.unusable = False
         self.title_start_used = False
+        self.movement_used = set()
 
     def status(self) -> dict:
         alive = self.process is not None and self.process.returncode is None
@@ -77,6 +79,7 @@ class Sessions:
             )
             self.unusable = False
             self.title_start_used = False
+            self.movement_used.clear()
             try:
                 line = await asyncio.wait_for(self.process.stdout.readline(), timeout=30)
                 result = json.loads(line)
@@ -201,6 +204,126 @@ class Sessions:
                 {"summary": {"input_released": True, "press_ms": 250}, "before": before, "after": after},
                 {**(self.receipt or {}), "recipe": "dismiss_title", "evidence_class": "synthetic_native"},
             )
+
+    async def movement(self, recipe: str) -> dict:
+        self._admit()
+        if recipe not in MOVEMENT:
+            raise ToolFailure("invalid_parameters", "Unknown reviewed movement recipe.")
+        async with self.operation_lock:
+            if recipe in self.movement_used:
+                raise ToolFailure(
+                    "already_attempted", "Each movement recipe is allowed once per owned session."
+                )
+            before = await self._snapshot()
+            actor = MOVEMENT[recipe]["actor"]
+            slot = before.get("p1" if actor == 0 else "p2", -1)
+            actors = before.get("actors", [])
+            if (
+                not before["input_admitted"]
+                or before.get("transport") != 2
+                or before.get("stage", 0) == 0
+                or before.get("generation", 0) <= 0
+                or before.get("menu_gated") != 0
+                or before.get("physical_mask") != 0
+                or not 0 <= slot <= 3
+                or len(actors) != 2
+                or actors[actor]["observed"] != 1
+                or before.get("p1") == before.get("p2")
+            ):
+                raise ToolFailure(
+                    "input_admission_failed",
+                    "Movement needs an observed actor and assigned pad in an offline loaded world without menus or physical controllers.",
+                )
+            self.movement_used.add(recipe)
+            samples, failure, released = [before], None, False
+            provenance = {
+                **(self.receipt or {}),
+                "recipe": recipe,
+                "recipe_version": 1,
+                "source_commit": self.config.settings.coop_source_commit,
+                "evidence_class": "synthetic_native",
+            }
+            started = time.monotonic()
+
+            def check_world(current):
+                if any(current.get(key) != before.get(key) for key in ("stage", "generation", "p1", "p2")):
+                    raise ToolFailure(
+                        "world_changed", "World or controller assignment changed during the recipe."
+                    )
+                if (
+                    not current["input_admitted"]
+                    or current.get("menu_gated") != 0
+                    or current.get("physical_mask") != 0
+                    or current["actors"][actor]["observed"] != 1
+                ):
+                    raise ToolFailure(
+                        "input_admission_failed", "Movement readiness changed during the recipe."
+                    )
+
+            try:
+                for _ in range(3):
+                    current = await self._snapshot()
+                    check_world(current)
+                    await self._request(
+                        "movement_pulse",
+                        recipe=recipe,
+                        stage=before["stage"],
+                        generation=before["generation"],
+                    )
+                    await asyncio.sleep(0.1)
+                    samples.append(await self._snapshot())
+                    check_world(samples[-1])
+            except BaseException as exc:
+                failure = exc
+            finally:
+                try:
+                    await self._request("neutral", connected=False)
+                    released = True
+                except Exception as exc:
+                    self.unusable = True
+                    await self._stop()
+                    failure = ToolFailure("cleanup_failed", "Input release failed; owned game stopped.")
+                    failure.__cause__ = exc
+            if failure is None:
+                try:
+                    await asyncio.sleep(0.2)
+                    samples.append(await self._snapshot())
+                    check_world(samples[-1])
+                except BaseException as exc:
+                    failure = exc
+            summary = {
+                "sample_count": len(samples),
+                "input_released": released,
+                "planned_press_ms": 300,
+                "duration_ms": round((time.monotonic() - started) * 1000),
+                "max_faults": max(s["faults"] for s in samples),
+                "max_native_errors": max(s["native_errors"] for s in samples),
+                "outcome": "cancelled"
+                if isinstance(failure, asyncio.CancelledError)
+                else "failed"
+                if failure
+                else "completed",
+            }
+            artifact = self.artifacts.put(
+                "movement_trace",
+                {
+                    "summary": summary,
+                    "samples": samples,
+                    "limits": [
+                        "Input submission is not proof of actor movement or physical-controller behavior.",
+                        "These recipes still require real-game acceptance.",
+                    ],
+                },
+                provenance,
+            )
+            if failure:
+                if isinstance(failure, asyncio.CancelledError):
+                    failure.artifact = artifact
+                else:
+                    failure = ToolFailure(getattr(failure, "code", "scenario_failed"), str(failure))
+                    failure.details = artifact
+                raise failure
+            return {**artifact, "summary": summary, "cleanup": "input_released"}
 
     async def capture(self, seconds: float, interval_ms: int = 250, neutral: bool = False) -> dict:
         self._admit()

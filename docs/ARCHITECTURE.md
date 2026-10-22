@@ -1,6 +1,6 @@
 # Architecture
 
-Version 0.2.0 by Thingolus. The Python MCP server runs outside DDDA and exposes a typed stdio interface. Tools return structured envelopes containing request ID, operation, capture time, duration, provenance, and success or a machine-readable error. Larger results become local artifacts with bounded reads.
+Version 0.3.0 by Thingolus. The Python MCP server runs outside DDDA and exposes a typed stdio interface. Tools return structured envelopes containing request ID, operation, capture time, duration, provenance, and success or a machine-readable error. Larger results become local artifacts with bounded reads.
 
 ## Reuse and source identity
 
@@ -30,4 +30,6 @@ The broker stops both its game and command loop on heartbeat expiry or parent de
 
 Deployment accepts named local candidates with an exact three-file hash inventory: one loader, the research runtime, and settings. It validates x86 exports, offline settings, current ownership, and game identity. Prepare creates a receipt; apply journals backups before replacement; rollback reconciles interrupted writes against before/after hashes. Unknown files and loader migration require a separate workflow.
 
-Save roots are explicitly configured. Backups include hashes, and restore makes an undo backup and refuses changed targets. Restore currently requires the target files to exist. Automatic fixture installation, cloud-save coordination, and transactional recovery across an interrupted multi-file save restore are not implemented. Save backup files remain available for manual recovery if a restore is interrupted.
+Save roots are explicitly configured. Restore validates both the target backup and durable undo inventory, then journals `prepared`, `restoring` or `rolling_back`, and finally `completed` or `rolled_back`. A marker in the game directory blocks native startup across artifact-root configurations. Hash reconciliation admits only the recorded old/new contents, so recovery can handle a crash after replacement but before journal completion. Files are staged and flushed before per-file atomic replacement; the whole set is recoverable, not simultaneously atomic. Existing targets are required; fixture installation and cloud-save coordination remain outside scope.
+
+The three movement recipes share copied-state guards in Python and the inert JS adapter. Only fixed recipe names cross the broker; the adapter maps them to a selected player's assigned slot and one fixed stick value. Input is released on cancellation/failure, with owned-process termination if release cannot be established. The catalog labels synthetic contract coverage separately from pending real-game acceptance.

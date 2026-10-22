@@ -1,6 +1,12 @@
 # Operations
 
-Version 0.2.0 by Thingolus. Configuration is read from ignored `config/local.json` or the `--config` path. Start with `config/local.example.json`; unknown configuration fields are rejected. Relative paths resolve against the project, not the caller's working directory. Run `--check` before connecting a client.
+Version 0.3.0 by Thingolus. Configuration is read from ignored `config/local.json` or the `--config` path. Start with `config/local.example.json`; unknown configuration fields are rejected. Relative paths resolve against the project, not the caller's working directory. Run `--check` before connecting a client.
+
+## Codex connection
+
+Run `.venv/Scripts/python.exe scripts/connect_codex.py` to register `dragons-dogma-dark`. The script uses `codex mcp add` with the absolute virtual-environment Python and project paths, verifies `codex mcp get --json`, and performs a real stdio handshake and project-status call. An identical existing entry is reused; a different entry is preserved and reported. Other Codex configuration is not replaced. This follows the [official Codex MCP configuration](https://learn.chatgpt.com/docs/extend/mcp?surface=cli).
+
+The installed connection uses the project's configured profile, currently development on this machine. It exposes development operations but launches no game on connection. Existing running chats may need a new session to discover a newly registered server. The verification report is `artifacts/validation/codex-connection.json`.
 
 ## Read-only development loop
 
@@ -9,7 +15,7 @@ Version 0.2.0 by Thingolus. Configuration is read from ignored `config/local.jso
 3. Use `read_source` for the pinned source lines and `inspect_binary` for bytes, disassembly, strings, or candidate absolute references. Binary offsets are RVAs, not process pointers. A candidate reference is not proof of a call graph edge.
 4. Follow returned artifact IDs with `read_artifact`. Compare compatible captures with `compare_runs`.
 
-All 24 tools advertise input and output schemas. Invalid operations return structured errors. Tool descriptions and schemas provide the precise argument names and limits. Four resource routes expose project status, build identity, symbol data, and run artifacts.
+All 27 tools advertise input and output schemas. Invalid operations return structured errors. Tool descriptions and schemas provide the precise argument names and limits. Four resource routes expose project status, build identity, symbol data, and run artifacts.
 
 ## Native sessions
 
@@ -23,7 +29,11 @@ Native sessions require all of the following:
 
 `start_session` creates a job. Poll `job_status` until completed, then use `session_status` and `runtime_snapshot`. Use `capture_trace` for bounded copied observations. The snapshot separates the live transport guard from the callback-copied fields: `native_state: pending_game_initialization` is expected before the game establishes native offline state. Observations remain available while transport is blocked. `input_admitted` stays false until the native state, developer gate, and fault checks pass.
 
-`run_scenario` supports `observe_idle`, `neutral_input`, and `dismiss_title`. The last recipe sends one 250 ms Start press, once per owned session, only with developer input enabled and no loaded stage, generation, or actor observations. It releases input on completion/cancellation. It never presses A, selects New Game, navigates menus, or loads a save; accepting the input request does not prove the title screen advanced. Foreground/modal restrictions can prevent the game from responding. The `seconds` argument applies to observation/neutral recipes; title Start always lasts 250 ms. These recipes do not establish physical-controller or full co-op acceptance.
+`list_scenarios` returns six recipes and their acceptance status. `observe_idle`, `neutral_input`, and `dismiss_title` retain their existing behavior. Title Start sends a 250 ms scheduled press once per owned session, only with developer input enabled and no loaded stage, generation, or actor observations. It never presses A, selects New Game, navigates menus, or loads a save; accepting the request does not prove UI progression.
+
+`p1_step_forward`, `p1_step_right`, and `p2_step_forward` send only the named left-stick axis at 16000, with no buttons, triggers or camera axes. They use the currently assigned controller slot rather than assuming slots 0/1. Each recipe is allowed once per owned session and schedules three 100 ms refresh intervals followed by release and 200 ms observation; actual duration includes RPC latency. The native provider expires two seconds after its last refresh. These recipes require an observed actor, assigned controller, loaded stage/generation, no menu or physical controllers, and the existing offline/developer/fault guards. World/role changes cause failure and cleanup; inability to release stops the owned game. No arbitrary input or duration override is accepted for movement. `seconds` controls only observe/neutral recipes.
+
+All three movement recipes have synthetic tests only. Their real-game movement, combat and physical-controller acceptance remain unverified. Back up the save before a ready-game run and inspect each job's outcome and evidence rather than equating successful input submission with movement.
 
 `cancel_job` cancels an operation and performs its cleanup. `stop_session` terminates the broker-owned game process without saving. A failure or timeout may make the session unusable; inspect its evidence and stop it before creating another. Never retry an action with an unknown outcome automatically.
 
@@ -73,7 +83,11 @@ Use either `dinput8.dll` or `xinput1_3.dll`, never both. The runtime must export
 
 ## Saves
 
-Add specific local save directories to `save_roots`. `backup_saves` copies `.sav` files with hashes into private storage while the game is closed. `restore_saves` accepts a backup ID, validates hashes and existing destinations, creates an undo backup, and restores the selected backup. It does not install missing save fixtures or change cloud synchronization. Multi-file restore is not an atomic transaction; retain the private backup directory for recovery.
+Add specific local save directories to `save_roots`. `backup_saves` copies `.sav` files with hashes into private storage while the game is closed. `restore_saves` verifies the entire inventory, creates durable undo copies, writes a restore journal and a game-directory blocker, stages all replacements, then atomically replaces each file. Missing destinations are refused. No cloud synchronization settings change.
+
+After interruption, call `save_restore_status`. Use its `receipt_id` with `recover_save_restore`, choosing `rollback` (default, restores pre-transaction saves) or `resume` (finishes the requested backup restore). Once rollback starts it must finish as rollback. Recovery verifies all old/new hashes and refuses unrelated edits before changing any target. Repeated recovery of a terminal receipt is idempotent. Existing undo backups remain usable through `restore_saves`.
+
+Unfinished restores block new backup/restore operations and MCP-owned game startup. The marker identifies the artifact root that owns recovery; using another local configuration cannot ignore the marker. Do not manually launch DDDA or edit saves during recovery: external programs do not honor the MCP lease. Restore is atomic per file and recoverable across files after process termination, not a simultaneous multi-file filesystem transaction. Sudden power loss and storage hardware failure have not been validated. Preserve the journals and backups until recovery finishes.
 
 ## Common failures
 

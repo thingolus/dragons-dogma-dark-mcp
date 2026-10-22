@@ -3,6 +3,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const vm = require('node:vm');
 let inputCalls = 0, statusSize = 132, statusVersion = 2, stage = 0, lastButtons = 0;
+let generation = 0, observed = 0, menu = 0, physical = 0, offline = 1, lastPads;
 class Pointer {
   constructor(buffer, offset=0) { this.buffer=buffer; this.offset=offset; }
   add(n) { return new Pointer(this.buffer,this.offset+n); }
@@ -13,6 +14,7 @@ class Pointer {
   writeU8(n) { this.buffer.writeUInt8(n,this.offset); }
   writeU32(n) { this.buffer.writeUInt32LE(n,this.offset); }
   writeU16(n) { this.buffer.writeUInt16LE(n,this.offset); }
+  writeS16(n) { this.buffer.writeInt16LE(n,this.offset); }
   writeByteArray(bytes) { Buffer.from(bytes).copy(this.buffer,this.offset); }
 }
 const context = {
@@ -23,15 +25,18 @@ const context = {
     if(name==='OfflineState') return ()=>2;
     if(name==='CoopGetStatus') return (p,size)=>{
       assert.equal(size,132); p.writeU32(statusSize); p.add(4).writeU32(statusVersion);
-      p.add(8).writeU32(2);p.add(24).writeU32(2);p.add(28).writeU32(1);p.add(52).writeU32(1);
+      p.add(8).writeU32(2);p.add(24).writeU32(2);p.add(28).writeU32(offline);p.add(52).writeU32(1);
       p.add(40).writeU32(stage);
+      p.add(12).writeU32(2); p.add(16).writeU32(3);
+      p.add(44).writeU32(generation); p.add(48).writeU32(physical); p.add(56).writeU32(menu);
+      p.add(60).writeU32(observed); p.add(96).writeU32(observed);
       return 1;
     };
     if(name==='CoopGetPerformanceStatus') return (p,size)=>{
       assert.equal(size,2448);p.writeU32(2448);p.add(4).writeU32(1);
       p.buffer.writeBigUInt64LE(9007199254740993n,16); return 1;
     };
-    if(name==='CoopSetTestPads') return (p,count)=>{ assert.equal(count,4);lastButtons=p.buffer.readUInt16LE(8);inputCalls++;return 1; };
+    if(name==='CoopSetTestPads') return (p,count)=>{ assert.equal(count,4);lastPads=Buffer.from(p.buffer);lastButtons=p.buffer.readUInt16LE(8);inputCalls++;return 1; };
     throw Error('Unexpected native call: '+name);
   },
   rpc:{exports:{}}, Uint8Array,
@@ -51,4 +56,22 @@ context.rpc.exports.neutral(true);context.rpc.exports.neutral(false);assert.equa
 context.rpc.exports.titleStart(true);assert.equal(lastButtons,0x10);
 stage=220;assert.throws(()=>context.rpc.exports.titleStart(true),/not_title_state/);
 context.rpc.exports.titleStart(false);assert.equal(lastButtons,0);
+assert.throws(()=>context.rpc.exports.movementPulse('arbitrary',220,1),/invalid_parameters/);
+assert.throws(()=>context.rpc.exports.movementPulse('p1_step_forward',220,1),/input_admission_failed/);
+generation=1;observed=1;
+let previousPacket=0;
+for (const [name,slot,offset] of [['p1_step_forward',2,12],['p1_step_right',2,10],['p2_step_forward',3,12]]) {
+  context.rpc.exports.movementPulse(name,220,1);
+  const packet=lastPads.readUInt32LE(slot*20+4);assert.ok(packet>previousPacket);previousPacket=packet;
+  assert.equal(lastPads.readInt16LE(slot*20+offset),16000);
+  for(let i=0;i<4;i++) assert.equal(lastPads.readUInt16LE(i*20+8),0);
+}
+for (const guard of ['menu','physical','offline','generation']) {
+  const count=inputCalls;
+  if(guard==='menu')menu=1;if(guard==='physical')physical=1;if(guard==='offline')offline=0;if(guard==='generation')generation=2;
+  assert.throws(()=>context.rpc.exports.movementPulse('p1_step_forward',220,1),/input_admission_failed/);
+  assert.equal(inputCalls,count);
+  menu=physical=0;offline=generation=1;
+}
+context.rpc.exports.neutral(false);assert.ok(lastPads.every(b=>b===0));
 console.log('agent contract passed: inert load, no-input reads, ABI refusal, exact uint64, explicit input only');

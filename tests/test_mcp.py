@@ -15,9 +15,15 @@ def test_real_sdk_tools_resources_and_errors(config):
         async with Client(server) as client:
             tools = await client.list_tools()
             names = {tool.name for tool in tools.tools}
-            assert len(names) == 24
+            assert len(names) == 27
             assert {"inspect_build", "search_knowledge", "start_session", "rollback_deployment"} <= names
             assert all(tool.output_schema for tool in tools.tools)
+            catalog = await client.call_tool("list_scenarios", {})
+            assert len(catalog.structured_content["data"]["recipes"]) == 6
+            recovery = await client.call_tool("save_restore_status", {})
+            assert not recovery.structured_content["data"]["game_blocked"]
+            refused_recovery = await client.call_tool("recover_save_restore", {"receipt_id": "a" * 32})
+            assert refused_recovery.structured_content["error"]["code"] == "profile_disabled"
             status = await client.call_tool("project_status", {})
             assert not status.is_error
             doc = status.structured_content

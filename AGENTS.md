@@ -1,6 +1,6 @@
 # Dragons Dogma Dark MCP implementation instructions
 
-Read `README.md`, `docs/VALIDATION.md`, `IMPLEMENTATION_PLAN.md`, and `reuse-manifest.json` before changes. This checkout contains the version 0.2 MCP implementation; the validation document separates verified behavior from remaining native acceptance.
+Read `README.md`, `docs/VALIDATION.md`, `IMPLEMENTATION_PLAN.md`, and `reuse-manifest.json` before changes. This checkout contains the version 0.3 MCP implementation; the validation document separates verified behavior from remaining native acceptance.
 
 - Keep this project independent from the sibling co-op repository. Do not stage, commit, reset, or overwrite that repository's active changes.
 - Use the pinned upstream commit as the reproducible starting point. Record any newer commit explicitly before adopting it. Never describe uncommitted upstream work as part of the pinned baseline.
@@ -13,6 +13,7 @@ Read `README.md`, `docs/VALIDATION.md`, `IMPLEMENTATION_PLAN.md`, and `reuse-man
 - Keep game pointers inside the native adapter. Return copied values, bounded results, provenance, and explicit evidence limitations.
 - Keep source documentation authoritative. Generated indexes must point to source paths, hashes, and evidence rather than becoming a second hand-maintained research ledger.
 - Keep private traces, saves, game assets, binaries, credentials, and decompiler databases out of Git, including private Git repositories. Retain upstream copyright/license notices when copying original project code.
+- Preserve pending save journals and the game-directory recovery marker. Use the recovery tools before new backups/restores or owned game launches; do not delete a marker to bypass recovery.
 - Run checks appropriate to each milestone. Do not call static or mock tests native gameplay acceptance. Record build identity and remaining uncertainty.
 
 Preserve the user's requested Thingolus credit and MIT copyright/license notices. Run the Python tests and Ruff checks after behavioral changes; use the read-only stdio smoke for integration changes. Never convert synthetic checks into claims of native acceptance.

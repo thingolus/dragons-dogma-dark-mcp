@@ -23,6 +23,7 @@ from .config import Config
 from .deployment import Deployment
 from .jobs import Jobs
 from .knowledge import Knowledge
+from .recipes import MOVEMENT, catalog
 from .saves import Saves
 from .session import Sessions
 from .source import Source
@@ -87,6 +88,9 @@ class Application:
                 "ghidra_export",
                 "deployment_receipts",
                 "save_backups",
+                "save_recovery",
+                "scenario_catalog",
+                "reviewed_movement_recipes",
             ],
             "live_requirements": "development profile, Frida extra, exact game, manifest-owned research runtime, no existing DDDA process",
             "limits": self.config.settings.limits.model_dump(),
@@ -281,20 +285,34 @@ def create_server(config: Config, config_path: Path | None = None) -> tuple[MCPS
 
     @mcp.tool(annotations=Write)
     async def run_scenario(
-        recipe: Literal["observe_idle", "neutral_input", "dismiss_title"],
+        recipe: Literal[
+            "observe_idle",
+            "neutral_input",
+            "dismiss_title",
+            "p1_step_forward",
+            "p1_step_right",
+            "p2_step_forward",
+        ],
         seconds: Annotated[float, Field(ge=0.1, le=120)] = 5,
     ) -> Result:
-        """Run a reviewed recipe with cleanup. dismiss_title presses Start once for 250ms; never confirms a save/menu choice."""
+        """Run a reviewed recipe with cleanup. Movement uses a fixed 300ms pulse once/session; seconds only controls observe/neutral. See list_scenarios for gates and evidence."""
 
         async def submit():
             config.require_development()
             if recipe == "dismiss_title":
                 return app.jobs.submit("run_scenario", app.sessions.dismiss_title)
+            if recipe in MOVEMENT:
+                return app.jobs.submit("run_scenario", lambda: app.sessions.movement(recipe))
             return app.jobs.submit(
                 "run_scenario", lambda: app.sessions.capture(seconds, 250, recipe == "neutral_input")
             )
 
         return await app.invoke("run_scenario", submit)
+
+    @mcp.tool(annotations=Read)
+    async def list_scenarios() -> Result:
+        """List reviewed recipes, fixed input/duration limits and native acceptance status."""
+        return await app.invoke("list_scenarios", catalog)
 
     @mcp.tool(annotations=Read)
     async def job_status(job_id: str) -> Result:
@@ -364,8 +382,20 @@ def create_server(config: Config, config_path: Path | None = None) -> tuple[MCPS
 
     @mcp.tool(annotations=Replace)
     async def restore_saves(backup_id: str) -> Result:
-        """Restore a verified backup with DDDA closed; retain current copies in a new backup."""
+        """Journal a verified restore with DDDA closed; retain undo copies and block launch until complete."""
         return await app.invoke("restore_saves", app.saves.restore, backup_id)
+
+    @mcp.tool(annotations=Read)
+    async def save_restore_status() -> Result:
+        """Find unfinished save transactions, including a game-wide recovery blocker."""
+        return await app.invoke("save_restore_status", app.saves.status)
+
+    @mcp.tool(annotations=Replace)
+    async def recover_save_restore(
+        receipt_id: str, action: Literal["resume", "rollback"] = "rollback"
+    ) -> Result:
+        """Resume or roll back an interrupted save restore; refuse unrelated save changes."""
+        return await app.invoke("recover_save_restore", app.saves.recover, receipt_id, action)
 
     @mcp.resource("ddda://project/status")
     async def project_resource() -> str:

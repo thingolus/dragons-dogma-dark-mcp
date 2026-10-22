@@ -2,7 +2,7 @@
 
 A dedicated Model Context Protocol project for faster AI-assisted development of **Dragon's Dogma: Dark Arisen (DDDA / Dragon's Dogma 1)**.
 
-Created by **Thingolus**. Version **0.2.0** implements 24 typed MCP tools and four resource routes over stdio. It reuses the co-op project's pinned research, signatures, runtime ABI, build targets, and deployment conventions.
+Created by **Thingolus**. Version **0.3.0** implements 27 typed MCP tools and four resource routes over stdio. It reuses the co-op project's pinned research, signatures, runtime ABI, build targets, and deployment conventions.
 
 Verified against the real game: owned startup, copied observations, performance reads, trace comparison/cancellation, competing-client refusal, process cleanup, and deployment rollback. Save restore/undo was tested on a disposable copy, and Ghidra export on a local game database. Loaded-world neutral input remains subject to native offline readiness; it is not counted as passed. See [validation and remaining gates](docs/VALIDATION.md).
 
@@ -10,10 +10,10 @@ Verified against the real game: owned startup, copied observations, performance 
 | --- | --- |
 | Project and knowledge | `project_status`, `verify_upstream`, `search_knowledge`, `lookup_symbol`, `read_source` |
 | Executable analysis | `inspect_build`, `inspect_binary`, `decompile_symbol` |
-| Owned research sessions | `session_status`, `start_session`, `stop_session`, `runtime_snapshot`, `capture_trace`, `run_scenario` |
+| Owned research sessions | `session_status`, `start_session`, `stop_session`, `runtime_snapshot`, `capture_trace`, `run_scenario`, `list_scenarios` |
 | Jobs and evidence | `job_status`, `cancel_job`, `read_artifact`, `compare_runs` |
 | Build and deployment | `build_and_test`, `prepare_deployment`, `apply_deployment`, `rollback_deployment` |
-| Saves | `backup_saves`, `restore_saves` |
+| Saves | `backup_saves`, `restore_saves`, `save_restore_status`, `recover_save_restore` |
 
 The local project is an independent Git repository beside `ddda-local-coop`, under the DDDA workspace. The display name is **Dragons Dogma Dark MCP**; the repository slug is `dragons-dogma-dark-mcp`.
 
@@ -28,6 +28,10 @@ uv sync --locked --extra live --python 3.13
 ```
 
 Insert the generated `mcpServers` entry into your MCP client's configuration. It uses absolute paths and the project's own Python environment. Start the server manually with `scripts/Start-Mcp.ps1`, or use the `ddda-mcp` entry point after installation. `scripts/Install.ps1 -UvPath <path-to-uv.exe>` provides the same installation and preflight check; `-WithoutLive` omits Frida.
+
+For Codex, run `.venv/Scripts/python.exe scripts/connect_codex.py`. It registers `dragons-dogma-dark` using the installed Codex CLI, preserves differing existing entries, and tests the saved command through an actual MCP handshake. A running chat may need a new session to discover the tools. This machine's connection has been registered and verified.
+
+Version 0.3 adds journaled save recovery and three fixed movement recipes. Recovery has been tested across actual test-process termination; the movement recipes have synthetic contract coverage and still await loaded-game acceptance. [Workflow benchmarks](docs/BENCHMARKS.md) compare direct commands with MCP on four tasks, without claiming measured AI reasoning or token savings.
 
 The default profile is `read_only`. Copy [config/local.example.json](config/local.example.json) to ignored `config/local.json` to customize paths. Set `profile` to `development` explicitly to enable build jobs, native sessions, deployment, save operations, and decompilation. Relative paths resolve against this project. Starting the MCP server does not start the game.
 

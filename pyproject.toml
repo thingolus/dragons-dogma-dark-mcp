@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "dragons-dogma-dark-mcp"
-version = "0.2.0"
+version = "0.3.0"
 description = "Thingolus's local MCP development toolkit for Dragon's Dogma: Dark Arisen"
 readme = "README.md"
 requires-python = ">=3.13"

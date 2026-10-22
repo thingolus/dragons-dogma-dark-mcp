@@ -1,6 +1,8 @@
 // Copied-value diagnostics adapted from DDDA Local Coop, by Thingolus and
 // project contributors (MIT). No timers, hooks, or input writes on load.
 'use strict';
+let inputPacket = 0;
+function nextInputPacket() { inputPacket = (inputPacket + 1) >>> 0; return inputPacket; }
 function runtime() {
   if (Process.arch !== 'ia32' || Process.pointerSize !== 4 || Process.mainModule.base.toString() !== '0x400000')
     throw Error('unsupported_build');
@@ -44,12 +46,32 @@ function neutralInput(connected) {
     throw Error('input_admission_failed');
   const p = Memory.alloc(80);
   p.writeByteArray(new Uint8Array(80));
-  if (connected) [0,1].forEach(i => {p.add(i*20).writeU8(1);p.add(i*20+4).writeU32(1);});
+  const packet = nextInputPacket();
+  if (connected) [0,1].forEach(i => {p.add(i*20).writeU8(1);p.add(i*20+4).writeU32(packet);});
   if (call('CoopSetTestPads','int',['pointer','uint'])(p,4) !== 1) throw Error('input_refused');
   return true;
 }
 rpc.exports = {
   snapshot, performance,
+  movementPulse(recipe, stage, generation) {
+    const definitions = {p1_step_forward:[0,12],p1_step_right:[0,10],p2_step_forward:[1,12]};
+    if (!Object.hasOwn(definitions, recipe) || !Number.isInteger(stage) || !Number.isInteger(generation))
+      throw Error('invalid_parameters');
+    const s = snapshot(), actor = definitions[recipe][0], slot = actor === 0 ? s.p1 : s.p2;
+    if (s.runtime !== 2 || s.developer_input !== 1 || s.transport !== 2 || s.guard_transport !== 2 ||
+        s.native_offline !== 1 || s.native_errors !== 0 || s.faults !== 0 || s.physical_mask !== 0 ||
+        s.menu_gated !== 0 || stage === 0 || generation <= 0 || s.stage !== stage ||
+        s.generation !== generation || s.actors[actor].observed !== 1 || slot < 0 || slot > 3 ||
+        (s.p1 >= 0 && s.p1 === s.p2)) throw Error('input_admission_failed');
+    const p = Memory.alloc(80); p.writeByteArray(new Uint8Array(80));
+    const packet = nextInputPacket();
+    [s.p1,s.p2].filter(i => i >= 0 && i <= 3).forEach(i => {
+      p.add(i*20).writeU8(1); p.add(i*20+4).writeU32(packet);
+    });
+    p.add(slot*20+definitions[recipe][1]).writeS16(16000);
+    if (call('CoopSetTestPads','int',['pointer','uint'])(p,4) !== 1) throw Error('input_refused');
+    return true;
+  },
   titleStart(pressed) {
     if (typeof pressed !== 'boolean') throw Error('invalid_parameters');
     const s = snapshot();
@@ -58,7 +80,7 @@ rpc.exports = {
     if (pressed && (s.stage !== 0 || s.generation !== 0 || s.actors.some(a => a.observed !== 0)))
       throw Error('not_title_state');
     const p = Memory.alloc(80); p.writeByteArray(new Uint8Array(80));
-    if (pressed) {p.writeU8(1);p.add(4).writeU32(1);p.add(8).writeU16(0x10);}
+    if (pressed) {p.writeU8(1);p.add(4).writeU32(nextInputPacket());p.add(8).writeU16(0x10);}
     if (call('CoopSetTestPads','int',['pointer','uint'])(p,4) !== 1) throw Error('input_refused');
     return true;
   },
