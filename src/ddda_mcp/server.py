@@ -19,8 +19,10 @@ from .artifacts import Artifacts
 from .binary import Binary
 from .build import Builds
 from .common import ToolFailure, utc_now
+from .comparison import Comparisons
 from .config import Config
 from .deployment import Deployment
+from .investigation import Investigations
 from .jobs import Jobs
 from .knowledge import Knowledge
 from .recipes import MOVEMENT, catalog
@@ -61,6 +63,10 @@ class Application:
         self.builds = Builds(config, self.source, self.artifacts)
         self.deployment = Deployment(config)
         self.saves = Saves(config)
+        self.comparisons = Comparisons(config, self.source, self.artifacts)
+        self.investigations = Investigations(
+            config, self.source, self.knowledge, self.binary, self.builds, self.artifacts
+        )
 
     def project_status(self) -> dict:
         verified = self.source.verify()
@@ -80,6 +86,9 @@ class Application:
                 "knowledge_search",
                 "symbol_lookup",
                 "pe_analysis",
+                "investigation_bundles",
+                "source_revision_comparison",
+                "named_build_comparison",
                 "jobs",
                 "artifacts",
                 "owned_native_sessions",
@@ -318,6 +327,46 @@ def create_server(config: Config, config_path: Path | None = None) -> tuple[MCPS
     async def job_status(job_id: str) -> Result:
         """Read a durable job receipt. A previous server's unfinished job is outcome_unknown."""
         return await app.invoke("job_status", app.jobs.status, job_id)
+
+    @mcp.tool(annotations=Write)
+    async def investigate_symbol(
+        symbol_name: Annotated[str, Field(min_length=1, max_length=128)],
+        query: Annotated[str, Field(max_length=256)] = "",
+        include_decompilation: bool = False,
+    ) -> Result:
+        """Bundle exact-symbol research, source, disassembly and candidate callers in a static job. Optional Ghidra export requires development profile; no game launch."""
+
+        async def submit():
+            if include_decompilation:
+                config.require_development()
+            return app.jobs.submit(
+                "investigate_symbol",
+                lambda: app.investigations.bundle(symbol_name, query, include_decompilation),
+            )
+
+        return await app.invoke("investigate_symbol", submit)
+
+    @mcp.tool(annotations=Read)
+    async def compare_source_revisions(
+        before_commit: str,
+        after_commit: str,
+        offset: Offset = 0,
+        limit: Annotated[int, Field(ge=1, le=50)] = 50,
+    ) -> Result:
+        """Compare full committed SHAs in the configured source repo: file hashes, bounded diffs, lexical function contexts and signatures. Never reads dirty files."""
+        return await app.invoke(
+            "compare_source_revisions",
+            app.comparisons.compare_source,
+            before_commit,
+            after_commit,
+            offset,
+            limit,
+        )
+
+    @mcp.tool(annotations=Read)
+    async def compare_builds(before_name: str, after_name: str) -> Result:
+        """Compare installed/named build manifests, DLL exports/imports/sections and settings. Report compatibility risks without deployment or gameplay claims."""
+        return await app.invoke("compare_builds", app.comparisons.compare_builds, before_name, after_name)
 
     @mcp.tool(annotations=Write)
     async def cancel_job(job_id: str) -> Result:

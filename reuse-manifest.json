@@ -2,7 +2,7 @@
   "schema_version": 1,
   "project": "Dragons Dogma Dark MCP",
   "created_date": "2026-10-22",
-  "status": "v0.3 adapters, Codex registration, journaled save recovery, six recipes and paired tool benchmarks; native observation/lifecycle verified previously; loaded-world input remains unverified",
+  "status": "v0.4 investigation bundles, source/build comparisons and regression/release automation; Codex integration, save recovery, recipes and benchmarks retained; loaded-world input remains unverified",
   "validation_document": "docs/VALIDATION.md",
   "implementation_adaptations": {
     "scripts/inspect_game.py and static probe conventions": "src/ddda_mcp/binary.py",

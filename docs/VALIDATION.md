@@ -1,14 +1,18 @@
 # Validation and remaining acceptance
 
-Version **0.3.0**, validated on 22 October 2026. Creator: **Thingolus**. This record distinguishes implementation tests, real native observations, and the remaining loaded-game input gate. Native/build/Ghidra observations below were established during v0.2; v0.3 adds client integration, recoverable saves, recipes and benchmark checks without launching DDDA.
+Version **0.4.0**, validated on 22 October 2026. Creator: **Thingolus**. This record distinguishes implementation tests, real native observations, and the remaining loaded-game input gate. Native/build observations below were established during v0.2. Version 0.3 added client integration, recoverable saves, recipes and benchmarks; v0.4 adds static investigation, source/build comparisons and release automation without launching DDDA.
 
 ## Passed
 
 | Check | Evidence |
 | --- | --- |
-| Python suite | 82 tests passed on Python 3.13 / Windows; Ruff passes. |
-| Real MCP stdio | 27 typed tools with output schemas and four resource routes; actual client calls against the server subprocess. |
-| Codex connection | `dragons-dogma-dark` registered through Codex CLI; saved command verified by a real stdio handshake and v0.3 project-status call. Re-running registration preserved the identical entry. Existing chats may need a new session for discovery. |
+| Python suite | 110 tests passed on Python 3.13 / Windows; Ruff lint and format checks pass. |
+| Real MCP stdio | 30 typed tools with output schemas and four resource routes; actual client calls against the server subprocess. |
+| Codex connection | `dragons-dogma-dark` registered through Codex CLI; saved command verified by a real stdio handshake and v0.4 project-status call. Re-running registration preserved the identical entry. Existing chats may need a new session for discovery. |
+| Investigation bundle | Real `pawn_delete` bundle collected five research excerpts, source passages, disassembly, absolute references, bounded candidate caller scan and Ghidra export. Zero caller candidates in this bounded scan is not proof of no callers. |
+| Source comparison | Real pinned commit versus its parent reports 71 changed files, paginated in groups up to 50, with ABI/settings review hints. Tests verify dirty checkout exclusion, pagination and runtime-signature differences. |
+| Build comparison | Real installed research payload versus a private copied fixture reports the changed developer-input setting. Installed files are unchanged. Synthetic PE fixtures additionally verify removed exports, section changes, malformed inputs and hash-tampering rejection. |
+| Release packaging | Wheel and source archive built and audited locally; checksums, installation guide and Thingolus license/credits included. Hosted Windows/Linux regression and tag-to-draft workflow is configured; remote execution results are recorded separately below. |
 | Save crash recovery | Actual subprocess termination before replacement, after the first file, and after the last file; both resume and rollback reconstruct the full intended set. Recovery and undo also pass through actual MCP stdio. Interrupted rollback, partial staging, unknown edits, corrupted backups, duplicate paths, terminal-marker cleanup and cross-config launch blocking are covered. Fixtures only. |
 | Recipe contracts | Six cataloged recipes, including P1 forward/right and P2 forward. Synthetic tests cover assigned slots, input contents/packet progression, guards, one-shot limits, world changes, cancellation evidence and stop-on-cleanup-failure. No real movement acceptance claimed. |
 | Paired tool workflows | Four tasks, five alternating pairs each. Exact source/identity checks pass; latency and response bytes recorded in [benchmarks](BENCHMARKS.md). No AI reasoning or model-token measurement. |

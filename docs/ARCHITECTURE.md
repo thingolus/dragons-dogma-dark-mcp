@@ -1,12 +1,14 @@
 # Architecture
 
-Version 0.3.0 by Thingolus. The Python MCP server runs outside DDDA and exposes a typed stdio interface. Tools return structured envelopes containing request ID, operation, capture time, duration, provenance, and success or a machine-readable error. Larger results become local artifacts with bounded reads.
+Version 0.4.0 by Thingolus. The Python MCP server runs outside DDDA and exposes a typed stdio interface. Tools return structured envelopes containing request ID, operation, capture time, duration, provenance, and success or a machine-readable error. Larger results become local artifacts with bounded reads.
 
 ## Reuse and source identity
 
 The server reads immutable Git objects at the commit in `reuse-manifest.json`; it does not import scripts from the active co-op working tree. It verifies the 42 inventoried blob identities and builds a SQLite FTS5 index from pinned documentation and experiment records. Symbol results merge research records with generated signature entries and point back to their source. This preserves the co-op project's accumulated knowledge while leaving its active work untouched.
 
 Static inspection parses one immutable byte snapshot of the PE file, derives its SHA-256, and uses Capstone for bounded x86 disassembly. Unknown executables can receive static analysis but cannot enter native operation paths. The native adapter requires the supported executable fingerprint recorded in the manifest.
+
+Investigation jobs compose existing source, knowledge, binary and optional Ghidra adapters. Binary component hashes must agree before aggregation. Relative-call scans report candidate encodings rather than verified function boundaries. Source comparison resolves full commit identities and compares Git blobs independently of the reviewed baseline; it does not adopt a new baseline. Build comparison accepts configured names and verified file-hash inventories, inventories immutable PE bytes, and reports static compatibility risks without changing deployment.
 
 ## Native boundary
 

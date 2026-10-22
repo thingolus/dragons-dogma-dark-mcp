@@ -1,3 +1,4 @@
+import os
 import shutil
 import subprocess
 from pathlib import Path
@@ -10,6 +11,8 @@ import ddda_mcp
 def test_actual_agent_is_inert_and_preserves_abi_values():
     node = shutil.which("node")
     if not node:
+        if os.environ.get("CI"):
+            pytest.fail("CI must install Node.js to exercise the actual agent contract")
         pytest.skip("Node.js is required for the synthetic Frida agent contract")
     agent = Path(ddda_mcp.__file__).with_name("agent.js")
     contract = Path(__file__).with_name("agent_contract.cjs")

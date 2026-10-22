@@ -1,6 +1,6 @@
 # Operations
 
-Version 0.3.0 by Thingolus. Configuration is read from ignored `config/local.json` or the `--config` path. Start with `config/local.example.json`; unknown configuration fields are rejected. Relative paths resolve against the project, not the caller's working directory. Run `--check` before connecting a client.
+Version 0.4.0 by Thingolus. Configuration is read from ignored `config/local.json` or the `--config` path. Start with `config/local.example.json`; unknown configuration fields are rejected. Relative paths resolve against the project, not the caller's working directory. Run `--check` before connecting a client.
 
 ## Codex connection
 
@@ -15,7 +15,7 @@ The installed connection uses the project's configured profile, currently develo
 3. Use `read_source` for the pinned source lines and `inspect_binary` for bytes, disassembly, strings, or candidate absolute references. Binary offsets are RVAs, not process pointers. A candidate reference is not proof of a call graph edge.
 4. Follow returned artifact IDs with `read_artifact`. Compare compatible captures with `compare_runs`.
 
-All 27 tools advertise input and output schemas. Invalid operations return structured errors. Tool descriptions and schemas provide the precise argument names and limits. Four resource routes expose project status, build identity, symbol data, and run artifacts.
+All 30 tools advertise input and output schemas. Invalid operations return structured errors. Tool descriptions and schemas provide the precise argument names and limits. Four resource routes expose project status, build identity, symbol data, and run artifacts. Use [analysis workflows](ANALYSIS.md) for investigation bundles and source/build comparisons, and [release instructions](RELEASES.md) for audited packages and CI.
 
 ## Native sessions
 

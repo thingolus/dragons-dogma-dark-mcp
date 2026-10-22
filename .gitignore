@@ -8,6 +8,7 @@
 
 # Local tools, environments and generated results
 .venv/
+.release-test/
 .tools/
 __pycache__/
 *.py[cod]

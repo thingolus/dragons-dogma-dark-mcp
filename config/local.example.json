@@ -9,6 +9,7 @@
   "transport": "stdio",
   "profile": "read_only",
   "deployment_candidates": {},
+  "analysis_builds": {},
   "save_roots": [],
   "limits": {
     "max_inline_result_bytes": 16384,

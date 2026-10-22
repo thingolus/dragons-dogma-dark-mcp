@@ -40,6 +40,7 @@ class Settings(BaseModel):
     ghidra_project_name: str = Field("DDDA", pattern=r"^[A-Za-z0-9_-]+$")
     # Named directories are selected in trusted local config, never supplied as tool paths.
     deployment_candidates: dict[str, str] = Field(default_factory=dict)
+    analysis_builds: dict[str, str] = Field(default_factory=dict)
     save_roots: list[str] = Field(default_factory=list)
 
 
