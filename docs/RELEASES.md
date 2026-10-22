@@ -1,12 +1,12 @@
 # Install and release Dragons Dogma Dark MCP
 
-Created by **Thingolus**, MIT licensed. Version 0.4.0. Retain the copyright and license notices when modifying or redistributing this software.
+Created by **Thingolus**, MIT licensed. Version 0.4.1. Retain the copyright and license notices when modifying or redistributing this software.
 
 ## Install a versioned package
 
 Download the source archive, wheel and `SHA256SUMS` from this private repository's release or Actions artifact. Verify the files against `SHA256SUMS` (Windows: `Get-FileHash -Algorithm SHA256`; Linux: `sha256sum --check SHA256SUMS`). Extract the source archive into its own project folder, outside the co-op source checkout. It contains configuration examples, the pinned reuse manifest, scripts and documentation; the wheel alone does not provision these project inputs.
 
-Install Python 3.13 and uv, then run `uv sync --locked` in the extracted project. On Windows, add `--extra live` only when native sessions are needed. A local checkout of `thingolus/ddda-local-coop` containing commit `61ed1bf830141b75981babe362cef42579eb98e3` is required for the research tools; configure `coop_source_root` if it is not a sibling. The game, research DLLs, saves and Ghidra database are not included. Static tests and CI use synthetic fixtures and require none of them.
+Install Python 3.13 and uv, then run `uv sync --locked` in the extracted project. On Windows, add `--extra live` only when native sessions are needed. A local checkout of `thingolus/ddda-local-coop` containing commit `e6a64c28d24bf4abda26887b0edeccc8bfd9b2a4` is required for the research tools; configure `coop_source_root` if it is not a sibling. The game, research DLLs, saves and Ghidra database are not included. Static tests and CI use synthetic fixtures and require none of them.
 
 Copy `config/local.example.json` to ignored `config/local.json`, set your explicit paths, and run `.venv/Scripts/python.exe -m ddda_mcp --check`. The default profile is read-only. Register with Codex using `scripts/connect_codex.py` or generate another client's stdio configuration using `--print-client-config`. Use `docs/OPERATIONS.md` for development mode and native prerequisites. Never infer loaded-game acceptance from installation or CI success.
 

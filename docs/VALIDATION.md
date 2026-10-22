@@ -1,6 +1,16 @@
 # Validation and remaining acceptance
 
-Version **0.4.0**, validated on 22 October 2026. Creator: **Thingolus**. This record distinguishes implementation tests, real native observations, and the remaining loaded-game input gate. Native/build observations below were established during v0.2. Version 0.3 added client integration, recoverable saves, recipes and benchmarks; v0.4 adds static investigation, source/build comparisons and release automation without launching DDDA.
+Version **0.4.1**, validated on 22 October 2026. Creator: **Thingolus**. This record distinguishes implementation tests, real native observations, and the remaining loaded-game input gate. Native observations below were established during v0.2. Version 0.3 added client integration, recoverable saves, recipes and benchmarks; v0.4 added static investigation, source/build comparisons and release automation without launching DDDA.
+
+## Current co-op baseline refresh
+
+The user's synchronization request promoted the completed co-op source checkpoint to `main` at `e6a64c28d24bf4abda26887b0edeccc8bfd9b2a4`; the remote has no `master` branch. MCP defaults, example/local configuration and all 42 reuse-manifest identities now use that commit. The source checkpoint includes narrative research, original artwork and synthetic test fixtures; raw local acceptance receipts and packaged binaries remain local.
+
+All 225 named signatures and three input thunks match the supported executable. All 219 previous records are unchanged; the nine additions cover NPC damage attribution, restricted-container hits and pickup rendering. The existing status (132 bytes/version 2), performance (2448 bytes/version 1) and four-pad input ABI is unchanged. The new developer-only down-refusal diagnostic is not exposed by this MCP update.
+
+Fresh checks passed: 110 Python tests, Ruff lint/format, the real 30-tool stdio handshake, all nine new symbol lookups, EXP-089 research retrieval and a complete `npc_damage_source_context` investigation. The index now contains 139 documents. An isolated Debug build of the exact committed source passed all 125 CTest entries, including D3D. Build job `766eebd19d8e4ce6923b2207adc8e2ee`, artifact `c9bbabf10fa6445e89727498545ba1b6`, artifact SHA-256 `a30912f3941964a808c39d4a88a364c2cc4deb3fb0a7e64b078b46acb2531e47`. Co-op packaging tests also passed 144 cases and five synthetic observer suites.
+
+No game launch, deployment or save mutation was performed during this refresh. The installation's shared-life reserve is outside MCP `.sav` backup/restore; see [operations](OPERATIONS.md#saves). The loaded-game MCP input gate remains unverified. Earlier results below retain their original source/build pins rather than inheriting native acceptance from this update.
 
 ## Passed
 
@@ -10,15 +20,15 @@ Version **0.4.0**, validated on 22 October 2026. Creator: **Thingolus**. This re
 | Real MCP stdio | 30 typed tools with output schemas and four resource routes; actual client calls against the server subprocess. |
 | Codex connection | `dragons-dogma-dark` registered through Codex CLI; saved command verified by a real stdio handshake and v0.4 project-status call. Re-running registration preserved the identical entry. Existing chats may need a new session for discovery. |
 | Investigation bundle | Real `pawn_delete` bundle collected five research excerpts, source passages, disassembly, absolute references, bounded candidate caller scan and Ghidra export. Zero caller candidates in this bounded scan is not proof of no callers. |
-| Source comparison | Real pinned commit versus its parent reports 71 changed files, paginated in groups up to 50, with ABI/settings review hints. Tests verify dirty checkout exclusion, pagination and runtime-signature differences. |
+| Source comparison | On the v0.4 baseline, real pinned commit versus its parent reported 71 changed files, paginated in groups up to 50, with ABI/settings review hints. Tests verify dirty checkout exclusion, pagination and runtime-signature differences. |
 | Build comparison | Real installed research payload versus a private copied fixture reports the changed developer-input setting. Installed files are unchanged. Synthetic PE fixtures additionally verify removed exports, section changes, malformed inputs and hash-tampering rejection. |
 | Release packaging | Wheel and source archive built and audited locally and on hosted Windows/Linux; checksums, installation guide and Thingolus license/credits included. Separate wheel installation and isolated startup pass on all three environments. |
 | Hosted regression | [GitHub Actions run 39789706792](https://github.com/thingolus/dragons-dogma-dark-mcp/actions/runs/39789706792), commit `0a004d7`: Windows 110 passed; Linux 109 passed, one Windows-specific test skipped. Both package audits and clean wheel installations passed. Tagged releases repeat these checks before draft creation. |
 | Save crash recovery | Actual subprocess termination before replacement, after the first file, and after the last file; both resume and rollback reconstruct the full intended set. Recovery and undo also pass through actual MCP stdio. Interrupted rollback, partial staging, unknown edits, corrupted backups, duplicate paths, terminal-marker cleanup and cross-config launch blocking are covered. Fixtures only. |
 | Recipe contracts | Six cataloged recipes, including P1 forward/right and P2 forward. Synthetic tests cover assigned slots, input contents/packet progression, guards, one-shot limits, world changes, cancellation evidence and stop-on-cleanup-failure. No real movement acceptance claimed. |
 | Paired tool workflows | Four tasks, five alternating pairs each. Exact source/identity checks pass; latency and response bytes recorded in [benchmarks](BENCHMARKS.md). No AI reasoning or model-token measurement. |
-| Pinned research and PE | 42 source inventory entries verified, 134 documents indexed, supported x86 executable identified and disassembled. Dirty co-op source is excluded. |
-| Full isolated build | All 122 upstream CTest entries passed through `build_and_test`, including the D3D test; zero failures. |
+| Pinned research and PE | 42 source inventory entries verified, 139 documents indexed, supported x86 executable identified and disassembled. Dirty co-op source is excluded. |
+| Full isolated build | Current baseline: all 125 upstream CTest entries passed through `build_and_test`, including D3D. The earlier 122-test result below belongs to the previous pin. |
 | Owned native launch | Real Frida bootstrap and offline transport self-test, exact executable/runtime/settings hashes, copied status and performance ABI reads. |
 | Observation workflow | Two bounded captures, comparison, cancellation with partial evidence, and post-cancellation status succeeded. A second MCP client was refused ownership. |
 | Process lifecycle | Real stdin EOF, supervisor death, and heartbeat expiry stopped the owned game and broker. Observed cleanup after the trigger was about 0.31 s, 0.20 s, and 26.78 s respectively; the heartbeat deadline starts before the test's ready message. |

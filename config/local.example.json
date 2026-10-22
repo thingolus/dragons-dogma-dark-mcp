@@ -2,7 +2,7 @@
   "schema_version": 1,
   "game_root": "..",
   "coop_source_root": "../ddda-local-coop",
-  "coop_source_commit": "61ed1bf830141b75981babe362cef42579eb98e3",
+  "coop_source_commit": "e6a64c28d24bf4abda26887b0edeccc8bfd9b2a4",
   "expected_game_sha256": "19facc2642f79a09d14ce55eace5f228161f2f8bab60ec67eb3c6196cc6277b8",
   "artifact_root": "private/runs",
   "index_root": "cache",

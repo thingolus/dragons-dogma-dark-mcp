@@ -2,9 +2,11 @@
 
 **Date:** 22 October 2026
 
-**Delivery state:** version 0.4.0 implemented, adding investigation bundles, source/build comparisons, and automated regression/release packaging to Codex integration, journaled recovery and six recipes. This document retains the original design and acceptance gates; current behavior and verification are documented in [README.md](README.md), [operations](docs/OPERATIONS.md), and [validation](docs/VALIDATION.md). The native acceptance gates are not all complete. Estimates below are planning estimates, not measured delivery or speedup claims.
+**Delivery state:** version 0.4.1 implemented, adding investigation bundles, source/build comparisons, and automated regression/release packaging to Codex integration, journaled recovery and six recipes. This document retains the original design and acceptance gates; current behavior and verification are documented in [README.md](README.md), [operations](docs/OPERATIONS.md), and [validation](docs/VALIDATION.md). The native acceptance gates are not all complete. Estimates below are planning estimates, not measured delivery or speedup claims.
 
 **Primary source:** [ddda-local-coop at `61ed1bf`](https://github.com/thingolus/ddda-local-coop/tree/61ed1bf830141b75981babe362cef42579eb98e3).
+
+**Baseline refresh:** v0.4.1 now uses [the committed 1.8 candidate at `e6a64c2`](https://github.com/thingolus/ddda-local-coop/tree/e6a64c28d24bf4abda26887b0edeccc8bfd9b2a4), as explicitly requested on 22 October 2026. The original planning baseline below is historical. The current reuse manifest pins 42 files, 225 named signatures and three input thunks; native acceptance gates retain their original evidence scope.
 
 ## 1. Objective and scope
 

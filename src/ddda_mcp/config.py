@@ -7,7 +7,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from .common import ToolFailure, contained, read_json
 
-BASELINE = "61ed1bf830141b75981babe362cef42579eb98e3"
+BASELINE = "e6a64c28d24bf4abda26887b0edeccc8bfd9b2a4"
 GAME_SHA256 = "19facc2642f79a09d14ce55eace5f228161f2f8bab60ec67eb3c6196cc6277b8"
 
 

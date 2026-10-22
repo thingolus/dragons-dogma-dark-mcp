@@ -1,6 +1,6 @@
 # Operations
 
-Version 0.4.0 by Thingolus. Configuration is read from ignored `config/local.json` or the `--config` path. Start with `config/local.example.json`; unknown configuration fields are rejected. Relative paths resolve against the project, not the caller's working directory. Run `--check` before connecting a client.
+Version 0.4.1 by Thingolus. Configuration is read from ignored `config/local.json` or the `--config` path. Start with `config/local.example.json`; unknown configuration fields are rejected. Relative paths resolve against the project, not the caller's working directory. Run `--check` before connecting a client.
 
 ## Codex connection
 
@@ -84,6 +84,8 @@ Use either `dinput8.dll` or `xinput1_3.dll`, never both. The runtime must export
 ## Saves
 
 Add specific local save directories to `save_roots`. `backup_saves` copies `.sav` files with hashes into private storage while the game is closed. `restore_saves` verifies the entire inventory, creates durable undo copies, writes a restore journal and a game-directory blocker, stages all replacements, then atomically replaces each file. Missing destinations are refused. No cloud synchronization settings change.
+
+The co-op 1.8 defaults enable shared revival and endless lives. Its installation-level `ddcoop.shared-lives.state` reserve and companion lock are outside `.sav` backup/restore and the three-file deployment rollback. Preserve them separately when planning a full installation restore; updating the MCP source pin does not reset or replace them. Endless mode preserves the finite reserve rather than rewriting it to infinity.
 
 After interruption, call `save_restore_status`. Use its `receipt_id` with `recover_save_restore`, choosing `rollback` (default, restores pre-transaction saves) or `resume` (finishes the requested backup restore). Once rollback starts it must finish as rollback. Recovery verifies all old/new hashes and refuses unrelated edits before changing any target. Repeated recovery of a terminal receipt is idempotent. Existing undo backups remain usable through `restore_saves`.
 

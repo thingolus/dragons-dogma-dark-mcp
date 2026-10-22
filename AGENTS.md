@@ -2,7 +2,7 @@
 
 Read `README.md`, `docs/VALIDATION.md`, `IMPLEMENTATION_PLAN.md`, and `reuse-manifest.json` before changes. This checkout contains the version 0.4 MCP implementation; the validation document separates verified behavior from remaining native acceptance.
 
-- Keep this project independent from the sibling co-op repository. Do not stage, commit, reset, or overwrite that repository's active changes.
+- Keep this project independent from the sibling co-op repository. Do not stage, commit, reset, or overwrite that repository's active changes unless the user explicitly requests a cross-repository checkpoint. The 22 October 2026 sync request authorizes the committed 1.8 source checkpoint and reviewed MCP baseline refresh.
 - Use the pinned upstream commit as the reproducible starting point. Record any newer commit explicitly before adopting it. Never describe uncommitted upstream work as part of the pinned baseline.
 - Implement the first useful read-only milestone before live control. Wrap existing scripts through bounded adapters; first remove import-time execution and implicit path assumptions where needed.
 - `research/runtime_api.js` starts a controller timer and publishes synthetic input on load. Extract its diagnostic reader; never load the whole script for a read-only tool.

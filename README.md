@@ -2,7 +2,7 @@
 
 A dedicated Model Context Protocol project for faster AI-assisted development of **Dragon's Dogma: Dark Arisen (DDDA / Dragon's Dogma 1)**.
 
-Created by **Thingolus**. Version **0.4.0** implements 30 typed MCP tools and four resource routes over stdio. It reuses the co-op project's pinned research, signatures, runtime ABI, build targets, and deployment conventions.
+Created by **Thingolus**. Version **0.4.1** implements 30 typed MCP tools and four resource routes over stdio. It reuses the co-op project's pinned research, signatures, runtime ABI, build targets, and deployment conventions.
 
 Verified against the real game: owned startup, copied observations, performance reads, trace comparison/cancellation, competing-client refusal, process cleanup, and deployment rollback. Save restore/undo was tested on a disposable copy, and Ghidra export on a local game database. Loaded-world neutral input remains subject to native offline readiness; it is not counted as passed. See [validation and remaining gates](docs/VALIDATION.md).
 
@@ -19,7 +19,7 @@ The local project is an independent Git repository beside `ddda-local-coop`, und
 
 ## Install and connect
 
-Use Python 3.13+ and [uv](https://docs.astral.sh/uv/). Keep a local checkout of [ddda-local-coop](https://github.com/thingolus/ddda-local-coop) containing commit `61ed1bf830141b75981babe362cef42579eb98e3`. By default it is a sibling folder, and the game is in the parent folder.
+Use Python 3.13+ and [uv](https://docs.astral.sh/uv/). Keep a local checkout of [ddda-local-coop](https://github.com/thingolus/ddda-local-coop) containing commit `e6a64c28d24bf4abda26887b0edeccc8bfd9b2a4`. By default it is a sibling folder, and the game is in the parent folder.
 
 ```powershell
 uv sync --locked --extra live --python 3.13
@@ -34,6 +34,8 @@ For Codex, run `.venv/Scripts/python.exe scripts/connect_codex.py`. It registers
 Version 0.3 adds journaled save recovery and three fixed movement recipes. Recovery has been tested across actual test-process termination; the movement recipes have synthetic contract coverage and still await loaded-game acceptance. [Workflow benchmarks](docs/BENCHMARKS.md) compare direct commands with MCP on four tasks, without claiming measured AI reasoning or token savings.
 
 Version 0.4 adds a single-request investigation bundle, committed-source and named-build comparison, and Windows/Linux regression and release automation. Bundles gather research, source excerpts, disassembly, candidate references/callers, and optional Ghidra exports into private artifacts. Build reports flag changed exports, sections, signatures and settings without treating static findings as gameplay proof. See [analysis workflows](docs/ANALYSIS.md) and [versioned installation/releases](docs/RELEASES.md).
+
+Version 0.4.1 pins the committed co-op 1.8 candidate at `e6a64c2`, including its new research and nine additional signatures (225 symbols plus three input thunks). The existing status, performance and input ABI remains unchanged. Shared-life state is separate from `.sav` backup/restore; see [operations](docs/OPERATIONS.md#saves).
 
 The default profile is `read_only`. Copy [config/local.example.json](config/local.example.json) to ignored `config/local.json` to customize paths. Set `profile` to `development` explicitly to enable build jobs, native sessions, deployment, save operations, and decompilation. Relative paths resolve against this project. Starting the MCP server does not start the game.
 

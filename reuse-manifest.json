@@ -2,7 +2,7 @@
   "schema_version": 1,
   "project": "Dragons Dogma Dark MCP",
   "created_date": "2026-10-22",
-  "status": "v0.4 investigation bundles, source/build comparisons and regression/release automation; Codex integration, save recovery, recipes and benchmarks retained; loaded-world input remains unverified",
+  "status": "v0.4.1 synchronized to committed co-op 1.8 candidate; 225 named signatures and three input thunks; loaded-world MCP input remains unverified",
   "validation_document": "docs/VALIDATION.md",
   "implementation_adaptations": {
     "scripts/inspect_game.py and static probe conventions": "src/ddda_mcp/binary.py",
@@ -14,18 +14,19 @@
   },
   "upstream": {
     "repository": "https://github.com/thingolus/ddda-local-coop",
-    "commit": "61ed1bf830141b75981babe362cef42579eb98e3",
+    "commit": "e6a64c28d24bf4abda26887b0edeccc8bfd9b2a4",
     "local_path_hint": "../ddda-local-coop",
     "original_source_license": "MIT",
-    "dirty_worktree_observed": true,
-    "dirty_changes_included": false
+    "dirty_worktree_observed": false,
+    "dirty_changes_included": false,
+    "previous_commit": "61ed1bf830141b75981babe362cef42579eb98e3"
   },
   "game_adapter": {
     "architecture": "x86",
     "steam_app_id": 367500,
     "steam_build_id": "2364871",
     "expected_executable_sha256": "19facc2642f79a09d14ce55eace5f228161f2f8bab60ec67eb3c6196cc6277b8",
-    "named_signature_records_at_pinned_commit": 216,
+    "named_signature_records_at_pinned_commit": 225,
     "input_thunks_at_pinned_commit": 3
   },
   "source_file_count": 42,
@@ -58,23 +59,23 @@
         },
         {
           "path": "include/coop/supported_build.hpp",
-          "git_blob_sha1": "52a57e4751710e47a35c525c13d315dbfc61f3e3"
+          "git_blob_sha1": "3d849407e65f6b4537fe5079d506f5467fca0a9a"
         },
         {
           "path": "scripts/generate_runtime_manifest.py",
-          "git_blob_sha1": "571821284b35987fd5be9171d50467c0a5b2221c"
+          "git_blob_sha1": "12b4689680a511b3287035e9139196ace8288848"
         },
         {
           "path": "docs/STATUS.md",
-          "git_blob_sha1": "cf1267b68afe56731e094169cc97342001dbbc6e"
+          "git_blob_sha1": "30c98de78f192d8b5ec5391948fa23726999ce91"
         },
         {
           "path": "docs/BACKLOG.md",
-          "git_blob_sha1": "baac53ead2501967ad2dea5717ba8b6da9ae5768"
+          "git_blob_sha1": "d3bd27a8820509e377bf8df84510ac4dca55f6be"
         },
         {
           "path": "docs/ARCHITECTURE.md",
-          "git_blob_sha1": "c8234cd635faf6e45f8157dd9f5195b36cbfe54b"
+          "git_blob_sha1": "3bebf1866c100946e073d684a6f099d2f37670b8"
         },
         {
           "path": "docs/DECISIONS.md",
@@ -118,7 +119,7 @@
         },
         {
           "path": "src/runtime.cpp",
-          "git_blob_sha1": "d8099ce774fffd2a2b35090fe0efdbbf2a5aa897"
+          "git_blob_sha1": "4d9d90b0619c488c0e5e732d405b3057057c43da"
         },
         {
           "path": "research/runtime_api.js",
@@ -156,7 +157,7 @@
         },
         {
           "path": "CMakeLists.txt",
-          "git_blob_sha1": "6da139de2b666f87371bfd384a72cc24fcfba2e8"
+          "git_blob_sha1": "0b8c4c0f75cb9d015b2bd714126ffec3d6e716ff"
         },
         {
           "path": "scripts/validate_generic_runtime.py",
