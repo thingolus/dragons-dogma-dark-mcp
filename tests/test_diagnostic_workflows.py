@@ -86,7 +86,7 @@ def stamped(second=0, **changes):
 
 def test_registry_redacts_and_does_not_mutate_inputs(config):
     service = Diagnostics(Artifacts(config))
-    assert len(service.catalog()["adapters"]) == 3
+    assert len(service.catalog()["adapters"]) == 9
     for name, payload in (
         ("runtime", runtime()),
         ("performance", performance()),
@@ -373,7 +373,7 @@ def test_all_new_workflows_over_actual_stdio(config):
             catalog = await call("list_diagnostic_adapters")
             if catalog.get("inline_truncated"):
                 catalog = Artifacts(config).get(catalog["artifact_id"])["data"]["result"]["data"]
-            assert len(catalog["adapters"]) == 3
+            assert len(catalog["adapters"]) == 9
             decoded = await call("decode_diagnostic", adapter="death_refusals", payload={"words": ring()})
             assert (await call("replay_diagnostic", artifact_id=decoded["artifact_id"]))["summary"][
                 "matches_recorded_decode"

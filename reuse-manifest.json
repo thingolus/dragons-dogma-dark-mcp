@@ -2,7 +2,7 @@
   "schema_version": 1,
   "project": "Dragons Dogma Dark MCP",
   "created_date": "2026-10-22",
-  "status": "v0.6 diagnostic adapter registry, offline timelines/replay and feature investigations; committed co-op 1.8 baseline with 225 named signatures and three input thunks; loaded-world MCP input remains unverified",
+  "status": "v0.7 gameplay checkpoints, six additional copied diagnostics, reviewed function tracing, investigation memory and repeated regression campaigns; native neutral-input and one historical idle trial verified; combat and physical-controller acceptance remain separate",
   "validation_document": "docs/VALIDATION.md",
   "implementation_adaptations": {
     "scripts/inspect_game.py and static probe conventions": "src/ddda_mcp/binary.py",
@@ -11,7 +11,10 @@
     "build targets and tools.lock.json pins": "src/ddda_mcp/build.py (isolated source archive)",
     "research deployment ownership manifests": "src/ddda_mcp/deployment.py",
     "Ghidra export conventions": "src/ddda_mcp/ExportMcp.java",
-    "shared_life_down_debug.hpp and runtime.cpp recorder layout": "src/ddda_mcp/death.py and agent.js; source hashes reviewed in upstream_contract.json"
+    "shared_life_down_debug.hpp and runtime.cpp recorder layout": "src/ddda_mcp/death.py and agent.js; source hashes reviewed in upstream_contract.json",
+    "reviewed copied exports in runtime.cpp and hud.cpp": "src/ddda_mcp/copied_groups.py and agent.js",
+    "observe_sprint_stamina.js and observe_fighter_damage.js": "src/ddda_mcp/trace_catalog.py and tracing.js (bounded observation only)",
+    "existing build/deploy/save primitives": "src/ddda_mcp/harness.py and regression.py (private receipts and cleanup)"
   },
   "upstream": {
     "repository": "https://github.com/thingolus/ddda-local-coop",

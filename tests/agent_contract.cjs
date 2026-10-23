@@ -5,6 +5,8 @@ const vm = require('node:vm');
 let inputCalls = 0, statusSize = 132, statusVersion = 2, stage = 0, lastButtons = 0;
 let generation = 0, observed = 0, menu = 0, physical = 0, offline = 1, lastPads;
 let developer = 1, deathAccepted = 1, deathVersion = 1, deathCalls = 0, deathMissing = false;
+const groups = JSON.parse(process.argv[3]);
+let copiedAccepted = 1, copiedVersionOffset = 0, copiedCalls = 0;
 class Pointer {
   constructor(buffer, offset=0) { this.buffer=buffer; this.offset=offset; }
   add(n) { return new Pointer(this.buffer,this.offset+n); }
@@ -19,10 +21,19 @@ class Pointer {
   writeByteArray(bytes) { Buffer.from(bytes).copy(this.buffer,this.offset); }
 }
 const context = {
+  REVIEWED_GROUPS:groups,
   Process:{arch:'ia32',pointerSize:4, mainModule:{base:{toString:()=> '0x400000'}},
            getModuleByName:()=>({getExportByName:name=>{if(deathMissing && name==='CoopSharedLifeDownDebugStatus')throw Error('missing');return name;}})},
   Memory:{alloc:n=>new Pointer(Buffer.alloc(n))},
   NativeFunction:function(name) {
+    const spec=Object.values(groups).find(g=>g.export===name);
+    if(spec) return (p,count)=>{
+      copiedCalls++;
+      assert.equal(p.buffer.length,spec.size);
+      assert.equal(count,spec.words_arg?spec.size/4:spec.size);
+      p.writeU32(spec.size);p.add(4).writeU32(spec.version+copiedVersionOffset);
+      return copiedAccepted;
+    };
     if(name==='OfflineState') return ()=>2;
     if(name==='CoopGetStatus') return (p,size)=>{
       assert.equal(size,132); p.writeU32(statusSize); p.add(4).writeU32(statusVersion);
@@ -90,5 +101,18 @@ assert.throws(()=>context.rpc.exports.deathRefusals(),/diagnostic_admission_fail
 developer=1;deathMissing=true;assert.throws(()=>context.rpc.exports.deathRefusals(),/diagnostic_unavailable/);
 deathMissing=false;deathAccepted=0;assert.throws(()=>context.rpc.exports.deathRefusals(),/diagnostic_refused/);
 deathAccepted=1;deathVersion=2;assert.throws(()=>context.rpc.exports.deathRefusals(),/abi_mismatch/);
+assert.equal(inputCalls,priorInputs);
+for(const [name,spec] of Object.entries(groups)) {
+  const words=context.rpc.exports.copiedGroup(name);
+  assert.equal(words.length,spec.size/4);assert.equal(words[1],spec.version);
+}
+assert.equal(inputCalls,priorInputs);
+assert.throws(()=>context.rpc.exports.copiedGroup('arbitrary'),/diagnostic_unavailable/);
+developer=0;const priorCopied=copiedCalls;
+assert.throws(()=>context.rpc.exports.copiedGroup('shared_life'),/diagnostic_admission_failed/);
+assert.equal(copiedCalls,priorCopied);developer=1;
+copiedAccepted=0;assert.throws(()=>context.rpc.exports.copiedGroup('shared_life'),/diagnostic_refused/);
+copiedAccepted=1;copiedVersionOffset=1;
+assert.throws(()=>context.rpc.exports.copiedGroup('shared_life'),/abi_mismatch/);
 assert.equal(inputCalls,priorInputs);
 console.log('agent contract passed: inert load, no-input reads, ABI refusal, exact uint64, explicit input only, redacted death diagnostics');

@@ -10,6 +10,7 @@ from pathlib import Path
 from .artifacts import Artifacts
 from .common import ToolFailure, read_json, utc_now
 from .config import Config
+from .copied_groups import GROUPS
 from .diagnostics import decode
 from .ownership import game_processes, stop_owned
 from .recipes import MOVEMENT
@@ -166,6 +167,19 @@ class Sessions:
             status = await self._snapshot()
             if group == "runtime":
                 return status
+            if group in GROUPS:
+                result = decode(group, {"words": await self._request("copied_group", group=group)})
+                result["summary"] = {"adapter": group, "decoder_version": result["decoder_version"]}
+                receipt = self.artifacts.put(
+                    "diagnostic_capture",
+                    result,
+                    {
+                        "session": self.receipt,
+                        "source_commit": self.config.settings.coop_source_commit,
+                        "evidence_class": "native_observation",
+                    },
+                )
+                return {"runtime": status, "diagnostic": result["decoded"], **receipt}
             if group == "performance":
                 result = decode("performance", await self._request("performance"))
                 result["summary"] = {"adapter": "performance", "decoder_version": result["decoder_version"]}

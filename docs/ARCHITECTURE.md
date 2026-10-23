@@ -1,6 +1,6 @@
 # Architecture
 
-Version 0.6.0 by Thingolus. The Python MCP server runs outside DDDA and exposes a typed stdio interface. Tools return structured envelopes containing request ID, operation, capture time, duration, provenance, and success or a machine-readable error. Larger results become local artifacts with bounded reads.
+Version 0.7.0 by Thingolus. The Python MCP server runs outside DDDA and exposes a typed stdio interface. Tools return structured envelopes containing request ID, operation, capture time, duration, provenance, and success or a machine-readable error. Larger results become local artifacts with bounded reads.
 
 ## Reuse and source identity
 
@@ -39,3 +39,21 @@ Deployment accepts named local candidates with an exact three-file hash inventor
 Save roots are explicitly configured. Restore validates both the target backup and durable undo inventory, then journals `prepared`, `restoring` or `rolling_back`, and finally `completed` or `rolled_back`. A marker in the game directory blocks native startup across artifact-root configurations. Hash reconciliation admits only the recorded old/new contents, so recovery can handle a crash after replacement but before journal completion. Files are staged and flushed before per-file atomic replacement; the whole set is recoverable, not simultaneously atomic. Existing targets are required; fixture installation and cloud-save coordination remain outside scope.
 
 The three movement recipes share copied-state guards in Python and the inert JS adapter. Only fixed recipe names cross the broker; the adapter maps them to a selected player's assigned slot and one fixed stick value. Input is released on cancellation/failure, with owned-process termination if release cannot be established. The catalog labels synthetic contract coverage separately from pending real-game acceptance.
+
+
+## Live development composition
+
+The v0.7 harness composes existing save journals, owned sessions and bounded
+capture. Checkpoints require hash-matched saves and advancing native evidence.
+Six additional copied ABI groups use the diagnostic registry. Function tracing
+has a fixed reviewed catalog, callback-only actor reads, bounded output and
+verified detach/prefix restoration; no arbitrary addresses or code are admitted.
+The optional Ghidra export shares the same reviewed symbol identity.
+
+Investigation memory uses a private SQLite revision index over immutable note
+artifacts and evidence hashes. Campaign journals compose immutable historical
+builds, version-compatible settings, temporary deployment, checkpoint loading,
+repeated idle trials and rollback. Cancellation drains the current transaction
+before cleanup; process-death recovery remains journal-based. Client menu loading
+is an explicit phase between preparation and evaluation. See
+[LIVE_DEVELOPMENT.md](LIVE_DEVELOPMENT.md) for operational limits and recovery.

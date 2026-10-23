@@ -2,9 +2,9 @@
 
 A dedicated Model Context Protocol project for faster AI-assisted development of **Dragon's Dogma: Dark Arisen (DDDA / Dragon's Dogma 1)**.
 
-Created by **Thingolus**. Version **0.6.0** implements 39 typed MCP tools and four resource routes over stdio. It reuses the co-op project's pinned research, signatures, runtime ABI, build targets, and deployment conventions.
+Created by **Thingolus**. Version **0.7.0** implements 50 typed MCP tools and four resource routes over stdio. It reuses the co-op project's pinned research, signatures, runtime ABI, build targets, and deployment conventions.
 
-Verified against the real game: owned startup, copied observations, performance reads, trace comparison/cancellation, competing-client refusal, process cleanup, and deployment rollback. Save restore/undo was tested on a disposable copy, and Ghidra export on a local game database. Loaded-world neutral input remains subject to native offline readiness; it is not counted as passed. See [validation and remaining gates](docs/VALIDATION.md).
+Verified against the real game: owned startup, copied observations, performance reads, trace comparison/cancellation, competing-client refusal, process cleanup, and deployment rollback. Save restore/undo was tested on a disposable copy, and Ghidra export on a local game database. Loaded-world neutral input, six additional copied diagnostics, stamina tracing, and one historical build/deploy/gameplay/rollback trial now pass their bounded native checks. Combat and physical-controller movement remain unverified. See [validation and remaining gates](docs/VALIDATION.md).
 
 | Workflow | Tools |
 | --- | --- |
@@ -16,6 +16,10 @@ Verified against the real game: owned startup, copied observations, performance 
 | Refusal diagnostics and compatibility | `decode_death_diagnostic`, `check_upstream_compatibility`, `runtime_snapshot(group="death_refusals")` |
 | Reusable diagnostics and timelines | `list_diagnostic_adapters`, `decode_diagnostic`, `replay_diagnostic`, `build_event_timeline`, `query_event_timeline`, `replay_event_timeline` |
 | Future feature research | `investigate_feature` |
+| Checkpoint gameplay | `create_gameplay_checkpoint`, `launch_gameplay_checkpoint`, `run_gameplay_harness` |
+| Reviewed function tracing | `list_function_traces`, `trace_function` |
+| Investigation memory | `record_investigation_note`, `read_investigation_note`, `search_investigations` |
+| Repeated regression trials | `create_regression_campaign`, `advance_regression_campaign`, `regression_campaign_status` |
 | Saves | `backup_saves`, `restore_saves`, `save_restore_status`, `recover_save_restore` |
 
 The local project is an independent Git repository beside `ddda-local-coop`, under the DDDA workspace. The display name is **Dragons Dogma Dark MCP**; the repository slug is `dragons-dogma-dark-mcp`.
@@ -43,6 +47,8 @@ Version 0.4.1 pins the committed co-op 1.8 candidate at `e6a64c2`, including its
 Version 0.5 adds [death/refusal diagnostics and offline replay](docs/DIAGNOSTICS.md), plus [automated upstream compatibility checks](docs/UPSTREAM_COMPATIBILITY.md). Preflight detects committed source drift without automatically changing the reviewed baseline.
 
 Version 0.6 adds [reviewed diagnostic adapters, event timelines, regression replay and feature investigations](docs/FUTURE_WORKFLOWS.md). Three copied-value schemas share validation and redacted replay storage. Timelines correlate compatible captured evidence and report rule findings while keeping different clocks separate. Feature reports gather pinned research, symbol/source/test candidates, include dependencies and missing evidence. All seven new tools work offline; future live fields still require native research and acceptance.
+
+Version 0.7 adds [checkpoint gameplay, broader diagnostics, reviewed function tracing, persistent investigation memory and repeated regression campaigns](docs/LIVE_DEVELOPMENT.md). The harness requires advancing native callbacks; trials build immutable commits, deploy temporarily and restore originals. Native menu loading remains an observed client action. The diagnostic catalog now contains nine schemas.
 
 The default profile is `read_only`. Copy [config/local.example.json](config/local.example.json) to ignored `config/local.json` to customize paths. Set `profile` to `development` explicitly to enable build jobs, native sessions, deployment, save operations, and decompilation. Relative paths resolve against this project. Starting the MCP server does not start the game.
 

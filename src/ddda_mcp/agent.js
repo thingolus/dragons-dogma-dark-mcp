@@ -71,6 +71,19 @@ function neutralInput(connected) {
 }
 rpc.exports = {
   snapshot, performance, deathRefusals,
+  traceStart(name,durationMs) { return traceStart(name,durationMs); },
+  traceStop() { return traceStop(); },
+  copiedGroup(name) {
+    if (!Object.hasOwn(REVIEWED_GROUPS, name)) throw Error('diagnostic_unavailable');
+    const s = snapshot(), spec = REVIEWED_GROUPS[name];
+    if (s.runtime !== 2 || s.guard_transport !== 2 || s.native_errors !== 0 || s.faults !== 0 || s.developer_input !== 1)
+      throw Error('diagnostic_admission_failed');
+    const p = Memory.alloc(spec.size);
+    if (call(spec.export,'int',['pointer','uint'])(p,spec.words_arg ? spec.size/4 : spec.size) !== 1)
+      throw Error('diagnostic_refused');
+    if (p.readU32() !== spec.size || p.add(4).readU32() !== spec.version) throw Error('abi_mismatch');
+    return Array.from({length:spec.size/4}, (_,i) => p.add(i*4).readU32());
+  },
   movementPulse(recipe, stage, generation) {
     const definitions = {p1_step_forward:[0,12],p1_step_right:[0,10],p2_step_forward:[1,12]};
     if (!Object.hasOwn(definitions, recipe) || !Number.isInteger(stage) || !Number.isInteger(generation))

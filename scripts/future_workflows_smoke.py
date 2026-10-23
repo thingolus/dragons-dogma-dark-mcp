@@ -24,7 +24,7 @@ async def main():
 
         report["tool_count"] = len((await client.list_tools()).tools)
         catalog = await call("list_diagnostic_adapters")
-        report["checks"]["adapter_catalog"] = len(catalog["adapters"]) == 3
+        report["checks"]["adapter_catalog"] = len(catalog["adapters"]) == 9
         # Synthetic capacity refusal; the words contain no game or private data.
         words = [2080, 1, 64, 8, 1, 1, 1, 0] + [0] * 512
         words[8:12] = [1, 3, 1, 0]

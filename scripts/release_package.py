@@ -55,6 +55,13 @@ def stage(root=ROOT):
             "ddda_mcp/diagnostics.py",
             "ddda_mcp/timeline.py",
             "ddda_mcp/features.py",
+            "ddda_mcp/harness.py",
+            "ddda_mcp/copied_groups.py",
+            "ddda_mcp/tracing.js",
+            "ddda_mcp/trace_catalog.py",
+            "ddda_mcp/tracing.py",
+            "ddda_mcp/memory.py",
+            "ddda_mcp/regression.py",
             "ddda_mcp/upstream_contract.json",
         } <= set(names)
         metadata = archive.read(next(n for n in names if n.endswith(".dist-info/METADATA"))).decode()

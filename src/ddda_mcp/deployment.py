@@ -230,6 +230,15 @@ class Deployment:
                 "files": candidate["files"],
                 "mcp_receipt": receipt_id,
             }
+            source_commit = candidate.get("source_commit")
+            if source_commit is not None:
+                import re
+
+                if not isinstance(source_commit, str) or not re.fullmatch(r"[0-9a-f]{40}", source_commit):
+                    raise ToolFailure(
+                        "candidate_invalid", "Candidate source commit must be an immutable identity."
+                    )
+                new_manifest["source_commit"] = source_commit
             atomic_json(folder / "new-manifest.json", new_manifest)
             after = {**candidate["files"], MANIFEST_NAME: digest(folder / "new-manifest.json")}
             receipt.update(state="applying", after=after)

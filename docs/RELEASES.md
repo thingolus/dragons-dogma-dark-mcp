@@ -1,6 +1,6 @@
 # Install and release Dragons Dogma Dark MCP
 
-Created by **Thingolus**, MIT licensed. Version 0.6.0. Retain the copyright and license notices when modifying or redistributing this software.
+Created by **Thingolus**, MIT licensed. Version 0.7.0. Retain the copyright and license notices when modifying or redistributing this software.
 
 ## Install a versioned package
 

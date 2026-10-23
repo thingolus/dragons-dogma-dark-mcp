@@ -3,6 +3,7 @@
 import asyncio
 import io
 import json
+import re
 import shutil
 import subprocess
 import tarfile
@@ -126,17 +127,19 @@ class Builds:
             "tool_missing", f"Configure {name} in config/local.json or install the co-op toolchain."
         )
 
-    async def build(self, configuration: str = "Debug", test_group: str = "all") -> dict:
+    async def build(
+        self, configuration: str = "Debug", test_group: str = "all", revision: str | None = None
+    ) -> dict:
         self.config.require_development()
         # The full upstream suite creates a D3D device. A fullscreen game can
         # make that test fail even when the binaries are correct.
         if test_group == "all":
             with game_lease(self.config.game):
                 require_closed()
-                return await self._build_locked(configuration, test_group)
-        return await self._build_locked(configuration, test_group)
+                return await self._build_locked(configuration, test_group, revision)
+        return await self._build_locked(configuration, test_group, revision)
 
-    async def _build_locked(self, configuration: str, test_group: str) -> dict:
+    async def _build_locked(self, configuration: str, test_group: str, revision: str | None = None) -> dict:
         self.config.require_development()
         if configuration not in {"Debug", "Release"} or test_group not in {"all", "core"}:
             raise ToolFailure("invalid_parameters", "Choose Debug/Release and all/core.")
@@ -144,6 +147,13 @@ class Builds:
             raise ToolFailure("build_busy", "An offline build/decompilation job is already active.")
         async with self.lock:
             self.source.verify()
+            source = self.source
+            if revision is not None:
+                if not re.fullmatch(r"[0-9a-f]{40}", revision):
+                    raise ToolFailure("invalid_revision", "An exact immutable commit is required.")
+                source = Source(self.config)
+                source.commit = revision
+                source.tree()  # Exact commit resolution; no active checkout inputs.
             cmake = self.executable(self.config.settings.cmake, "cmake", "cmake/**/cmake.exe")
             ctest = str(
                 Path(cmake).with_name("ctest.exe" if Path(cmake).suffix.lower() == ".exe" else "ctest")
@@ -152,10 +162,10 @@ class Builds:
             source_root, build_root = folder / "source", folder / "build"
             source_root.mkdir(parents=True)
             archive = await asyncio.to_thread(
-                self.source.git,
+                source.git,
                 "archive",
                 "--format=tar",
-                self.source.commit,
+                source.commit,
                 "CMakeLists.txt",
                 "src",
                 "include",
@@ -171,7 +181,7 @@ class Builds:
                 raise ToolFailure(
                     "tool_missing", "Pinned MinHook source is missing from the co-op toolchain."
                 )
-            pins = json.loads(self.source.read("tools.lock.json"))
+            pins = json.loads(source.read("tools.lock.json"))
             pin = next(item["commit"] for item in pins["sources"] if item["name"] == "minhook")
             proc = await asyncio.to_thread(
                 subprocess.run,
@@ -238,9 +248,14 @@ class Builds:
             }
             artifact = self.artifacts.put(
                 "build",
-                {"summary": summary, "steps": results, "binaries": binaries},
                 {
-                    "source_commit": self.source.commit,
+                    "summary": summary,
+                    "steps": results,
+                    "binaries": binaries,
+                    "build_directory": str(build_root / configuration),
+                },
+                {
+                    "source_commit": source.commit,
                     "minhook_commit": pin,
                     "configuration": configuration,
                     "recipe": "build_" + test_group,
@@ -262,6 +277,11 @@ class Builds:
                 )
             self.source.verify()
             symbol = next((s for s in self.source.symbols() if s["name"] == symbol_name), None)
+            from .trace_catalog import TRACES, reviewed
+
+            if symbol_name in TRACES:
+                spec = reviewed(self.source, symbol_name)
+                symbol = {"runtime_signature": {"rva": hex(spec["rva"]), "bytes": spec["bytes"]}}
             if not symbol or "runtime_signature" not in symbol:
                 raise ToolFailure("symbol_not_found", "An exact signature-pinned symbol name is required.")
             info = Binary(self.config).inventory()

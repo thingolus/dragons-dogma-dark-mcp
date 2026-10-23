@@ -16,6 +16,10 @@ WATCHED = (
     "include/coop/session.hpp",
     "include/coop/shared_life_down_debug.hpp",
     "include/coop/settings.hpp",
+    "include/coop/hud.hpp",
+    "src/hud.cpp",
+    "research/observe_sprint_stamina.js",
+    "research/observe_fighter_damage.js",
     "src/runtime.cpp",
     "src/network_guard.cpp",
     "src/settings.cpp",
@@ -33,6 +37,12 @@ REQUIRED_EXPORTS = (
     "CoopSetTestPads",
     "CoopSharedLifeDownDebugStatus",
     "OfflineState",
+    "CoopGetHudStatus",
+    "CoopGetVocationStatus",
+    "CoopGetGenericStatus",
+    "CoopSharedMenuStatus",
+    "CoopSharedLifeStatus",
+    "CoopGetIngleHudStatus",
 )
 
 
@@ -44,7 +54,7 @@ def capture_contract(source):
         raise ToolFailure("contract_inputs_missing", "Missing required source inputs: " + ", ".join(missing))
     blobs = source.read_many(list(required))
     exports = {}
-    for path in ("src/runtime.cpp", "src/network_guard.cpp"):
+    for path in ("src/runtime.cpp", "src/network_guard.cpp", "src/hud.cpp"):
         # Recognize this project's exported C function definitions, not arbitrary C++ ABI.
         text = re.sub(r"/\*.*?\*/|//[^\n]*", "", source.read(path), flags=re.S)
         for result, convention, name, args in re.findall(

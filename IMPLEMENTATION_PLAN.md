@@ -2,7 +2,7 @@
 
 **Date:** 22 October 2026
 
-**Delivery state:** version 0.6.0 implemented, adding reusable diagnostic adapters, event timelines with regression replay, and feature-level investigation/change-impact candidates. These extend v0.5 death/refusal decoding and upstream compatibility gates, investigation bundles, source/build comparisons, release automation, Codex integration, journaled recovery and six recipes. See [future-development workflows](docs/FUTURE_WORKFLOWS.md). This document retains the original design and acceptance gates; current behavior and verification are documented in [README.md](README.md), [operations](docs/OPERATIONS.md), and [validation](docs/VALIDATION.md). The native acceptance gates are not all complete. Estimates below are planning estimates, not measured delivery or speedup claims.
+**Delivery state:** version 0.7.0 implemented, including all five live development additions in the requested order: checkpoint harness, broader copied diagnostics, reviewed runtime tracing, persistent investigation memory, then repeated regression isolation. See [live development workflows](docs/LIVE_DEVELOPMENT.md) and [validation](docs/VALIDATION.md) for exact scope and evidence. This document retains the original planning estimates and acceptance gates; physical-controller movement and combat acceptance remain separate.
 
 **Primary source:** [ddda-local-coop at `61ed1bf`](https://github.com/thingolus/ddda-local-coop/tree/61ed1bf830141b75981babe362cef42579eb98e3).
 

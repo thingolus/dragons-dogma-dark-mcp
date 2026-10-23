@@ -1,6 +1,22 @@
 # Validation and remaining acceptance
 
-Version **0.6.0**, validated on 23 October 2026. Creator: **Thingolus**. This record distinguishes implementation tests, real native observations, and the remaining loaded-game input gate. Native observations below were established during v0.2. Subsequent offline milestones do not inherit new native acceptance from those observations.
+Version **0.7.0**, validated on 23 October 2026. Creator: **Thingolus**. This record distinguishes synthetic implementation tests, actual native observations and remaining gameplay coverage. Earlier milestone sections below retain their historical evidence scope.
+
+## Five live-development additions
+
+The Windows suite passes **217 tests**, including real stdio checkpoint registration and investigation persistence across subprocess restarts, cancellation/cleanup, stale evidence, copied ABI decoding, repeated bisection and immutable build/deploy/restore orchestration. Ruff, the real-project stdio smoke, future-workflow smoke, archive audit and isolated wheel import pass. Three native investigation notes persisted across a fresh stdio server and all evidence hashes rechecked successfully. The server exposes **50 typed tools** and four resource routes. The nine-adapter catalog and two reviewed trace signatures are linked to the unchanged `e6a64c2` research baseline. See [workflows and limits](LIVE_DEVELOPMENT.md).
+
+Fresh native acceptance used owned sessions and the existing inn save at stage 220:
+
+- Checkpoint registration binds a hash-checked backup to an advancing native trace. Loaded-world neutral input completed with eight samples and verified release; its harness artifact is `087535223d5049f1b68e7d3a6705eb40`, SHA-256 `106db6a1d7abf1d39a47f9c00933d98cbdf74dc741c38f80a6f15c617b467605`.
+- All six new copied groups returned valid native data: pawn resources, vocation, actions, inventory/menu lifecycle, shared life and target HUD. Hidden/unavailable caches retain their availability flags. The death-refusal ring was valid and empty; the performance collector was inactive. Neither result proves combat behavior.
+- The stamina observer captured 200 native events, no omissions, and verified hook removal. Artifact `17a4428e44df43779e4f721a3ea80fb3`, SHA-256 `784f58241a68ebd8e0ea5e3fbbb31031f94cd7a396fac6cb77d2f0e835b0d7b7`. The health observer installed and removed successfully but captured zero events; combat damage acceptance is unverified.
+- A real Ghidra export for the stamina function passed: artifact `a9eef0f1e2d94254b0a3d74e80b7db16`, SHA-256 `881c3a81019dce44b0f2879621b8df9d766cec9f122db08d11f48bd5ad617f63`. This validates the export separately from the live observer; it is not proof of a complete call graph.
+- Historical source `61ed1bf830141b75981babe362cef42579eb98e3` built from its immutable archive and passed all **122 CTests**. The first native attempt caught an unsupported newer `recovery.endless_lives` setting. Candidate generation now uses selected-source defaults and supported overrides, recording omissions. Subsequent menu timeouts remained inconclusive and restored originals.
+- Campaign `fce0500b9d0a44b9a55ab3a43f10d388` then completed a real loaded-world idle trial with eight advancing samples, no faults, verified process exit, deployment rollback, save restore and byte-identical shared-life state. Evidence `8f0dc1ffe1f24352942aece6a68b83c9`, SHA-256 `5118eb3246e89b6a7d5f3993127a97d5c2560cc5620b255d01607b61f54286a4`. The acceptance campaign was deliberately ended after that trial. No full native bisection boundary is claimed.
+
+The physical controller mask was 1 and player assignments were -1; physical-controller movement and combat remain unverified. Menu navigation was performed through observed native UI. No Windows security prompt needed action. Runtime identity was captured by DLL hash; the pre-existing installation's source identity is unknown, while the historical trial has an exact source commit. The original installation, saves and shared-life reserve were restored; dirty sibling source was not used or modified. Private evidence remains excluded from Git and packages.
+
 
 ## Diagnostic framework, timelines and future feature research
 
@@ -32,8 +48,8 @@ No game launch, deployment or save mutation was performed during this refresh. T
 
 | Check | Evidence |
 | --- | --- |
-| Python suite | 183 tests passed on Python 3.13 / Windows; Ruff lint and format checks pass. |
-| Real MCP stdio | 39 typed tools with output schemas and four resource routes; actual client calls against the server subprocess. |
+| Python suite | 217 tests passed on Python 3.13 / Windows; Ruff lint and format checks pass. |
+| Real MCP stdio | 50 typed tools with output schemas and four resource routes; actual client calls against the server subprocess. |
 | Codex connection | `dragons-dogma-dark` registered through Codex CLI; saved command verified by a real stdio handshake and v0.4 project-status call. Re-running registration preserved the identical entry. Existing chats may need a new session for discovery. |
 | Investigation bundle | Real `pawn_delete` bundle collected five research excerpts, source passages, disassembly, absolute references, bounded candidate caller scan and Ghidra export. Zero caller candidates in this bounded scan is not proof of no callers. |
 | Source comparison | On the v0.4 baseline, real pinned commit versus its parent reported 71 changed files, paginated in groups up to 50, with ABI/settings review hints. Tests verify dirty checkout exclusion, pagination and runtime-signature differences. |
@@ -64,7 +80,7 @@ Native tests used installed runtime SHA-256 `49e784556849fa3ed1cde9fc26d3018dfd7
 - Direct Java execution needs Ghidra's shipped VM options, including its class loader. The MCP and setup CLI now use the distribution's Windows options; real export passes.
 - Trace accounting now includes pretty-printed storage overhead so a small byte budget still preserves readable partial evidence.
 
-## Loaded-game input gate remains unverified
+## Historical v0.2 loaded-game input gate (superseded by v0.7 neutral acceptance)
 
 The native `neutral_input` acceptance run did not reach native offline readiness and is **not passed**. A Windows Security prompt for OpenJDK covered the desktop. The user was away and unable to dismiss it; it was left untouched. A bounded title-screen Start request was accepted by the research runtime and released, but it did not establish game progression or native offline readiness. No A/confirm input, New Game selection, save loading, or combat actions were sent.
 

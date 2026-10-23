@@ -9,6 +9,7 @@ from typing import Annotated, Literal
 from pydantic import AfterValidator, BaseModel, ConfigDict, Field, ValidationError
 
 from .common import ToolFailure
+from .copied_groups import GROUPS, decode_group
 from .death import POINTER_COLUMNS, decode_death
 
 U32 = Annotated[int, Field(strict=True, ge=0, le=0xFFFFFFFF)]
@@ -199,6 +200,19 @@ ADAPTERS = {
         ),
     )
 }
+
+
+for _name, _spec in GROUPS.items():
+    ADAPTERS[_name] = Adapter(
+        _name,
+        _spec["export"],
+        _spec["size"],
+        _spec["version"],
+        _spec.get("source", "src/runtime.cpp"),
+        word_count=_spec["size"] // 4,
+        word_decoder=lambda words, name=_name: decode_group(name, words),
+        requires_developer=True,
+    )
 
 
 def fingerprint(value):

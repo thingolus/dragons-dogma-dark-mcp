@@ -26,14 +26,18 @@ from .death import decode_death
 from .deployment import Deployment
 from .diagnostics import Diagnostics
 from .features import Features
+from .harness import Harness
 from .investigation import Investigations
 from .jobs import Jobs
 from .knowledge import Knowledge
+from .memory import InvestigationMemory
 from .recipes import MOVEMENT, catalog
+from .regression import Regressions
 from .saves import Saves
 from .session import Sessions
 from .source import Source
 from .timeline import Timelines
+from .tracing import Tracing
 
 
 class Envelope(BaseModel):
@@ -71,6 +75,12 @@ class Application:
         self.builds = Builds(config, self.source, self.artifacts)
         self.deployment = Deployment(config)
         self.saves = Saves(config)
+        self.harness = Harness(config, self.artifacts, self.sessions, self.saves)
+        self.tracing = Tracing(self.source, self.sessions, self.builds, self.artifacts)
+        self.memory = InvestigationMemory(config, self.source, self.artifacts)
+        self.regressions = Regressions(
+            config, self.source, self.artifacts, self.builds, self.deployment, self.harness
+        )
         self.comparisons = Comparisons(config, self.source, self.artifacts)
         self.compatibility = Compatibility(config, self.source, self.artifacts)
         self.investigations = Investigations(
@@ -116,6 +126,11 @@ class Application:
                 "save_recovery",
                 "scenario_catalog",
                 "reviewed_movement_recipes",
+                "gameplay_checkpoints",
+                "copied_gameplay_diagnostics",
+                "reviewed_function_tracing",
+                "persistent_investigation_memory",
+                "repeated_regression_campaigns",
             ],
             "live_requirements": "development profile, Frida extra, exact game, manifest-owned research runtime, no existing DDDA process",
             "limits": self.config.settings.limits.model_dump(),
@@ -292,7 +307,17 @@ def create_server(config: Config, config_path: Path | None = None) -> tuple[MCPS
 
     @mcp.tool(annotations=Read)
     async def runtime_snapshot(
-        group: Literal["runtime", "performance", "death_refusals"] = "runtime",
+        group: Literal[
+            "runtime",
+            "performance",
+            "death_refusals",
+            "pawn_resources",
+            "pawn_vocation",
+            "pawn_actions",
+            "inventory_menu",
+            "shared_life",
+            "target_hud",
+        ] = "runtime",
     ) -> Result:
         """Read copied, ABI-checked state from this server's owned guarded game. Never supplies input."""
         return await app.invoke("runtime_snapshot", app.sessions.snapshot, group)
@@ -314,7 +339,17 @@ def create_server(config: Config, config_path: Path | None = None) -> tuple[MCPS
 
     @mcp.tool(annotations=Write)
     async def decode_diagnostic(
-        adapter: Literal["runtime", "performance", "death_refusals"],
+        adapter: Literal[
+            "runtime",
+            "performance",
+            "death_refusals",
+            "pawn_resources",
+            "pawn_vocation",
+            "pawn_actions",
+            "inventory_menu",
+            "shared_life",
+            "target_hud",
+        ],
         payload: dict[str, Any],
     ) -> Result:
         """Validate/redact supplied copied fields and save a private replay fixture. Death payload is {words: [...]}; runtime/performance use catalog schemas. Evidence is offline_supplied, never live proof."""
@@ -530,6 +565,136 @@ def create_server(config: Config, config_path: Path | None = None) -> tuple[MCPS
     ) -> Result:
         """Resume or roll back an interrupted save restore; refuse unrelated save changes."""
         return await app.invoke("recover_save_restore", app.saves.recover, receipt_id, action)
+
+    @mcp.tool(annotations=Write)
+    async def record_investigation_note(
+        title: str,
+        body: str,
+        kind: Literal["hypothesis", "finding", "failed_attempt", "open_question"] = "hypothesis",
+        status: Literal["open", "supported", "refuted", "resolved", "superseded"] = "open",
+        evidence_ids: list[str] | None = None,
+        source_paths: list[str] | None = None,
+        note_id: str | None = None,
+        expected_revision: Annotated[int, Field(ge=0)] = 0,
+    ) -> Result:
+        """Append a private investigation revision with exact evidence hashes; never overwrite prior claims."""
+        return await app.invoke(
+            "record_investigation_note",
+            app.memory.record,
+            title,
+            body,
+            kind,
+            status,
+            evidence_ids,
+            source_paths,
+            note_id,
+            expected_revision,
+        )
+
+    @mcp.tool(annotations=Read)
+    async def read_investigation_note(
+        note_id: str, revision: Annotated[int, Field(ge=1)] | None = None
+    ) -> Result:
+        """Read a current or historical claim and check whether its referenced evidence changed."""
+        return await app.invoke("read_investigation_note", app.memory.read, note_id, revision)
+
+    @mcp.tool(annotations=Read)
+    async def search_investigations(
+        query: str = "",
+        kind: str | None = None,
+        status: str | None = None,
+        offset: Offset = 0,
+        limit: Annotated[int, Field(ge=1, le=50)] = 20,
+    ) -> Result:
+        """Search latest private hypotheses, findings, failed attempts and open questions."""
+        return await app.invoke(
+            "search_investigations", app.memory.search, query, kind, status, offset, limit
+        )
+
+    @mcp.tool(annotations=Write)
+    async def create_regression_campaign(
+        checkpoint_id: str,
+        revisions: Annotated[list[str], Field(min_length=2, max_length=16)],
+        repeats: Literal[2, 3] = 2,
+    ) -> Result:
+        """Plan repeated endpoint/midpoint gameplay trials over exact ordered commits; inconsistent results stay inconclusive."""
+        return await app.invoke(
+            "create_regression_campaign", app.regressions.create, checkpoint_id, revisions, repeats
+        )
+
+    @mcp.tool(annotations=Replace)
+    async def advance_regression_campaign(
+        campaign_id: str, action: Literal["prepare", "evaluate", "abort"] = "prepare"
+    ) -> Result:
+        """Prepare builds/deployment/known save; evaluate runs readiness/tests/rollback. Client loads observed native menus between phases. Abort recovers originals."""
+
+        async def submit():
+            config.require_development()
+            return app.jobs.submit(
+                "regression_campaign", lambda: app.regressions.advance(campaign_id, action)
+            )
+
+        return await app.invoke("advance_regression_campaign", submit)
+
+    @mcp.tool(annotations=Read)
+    async def regression_campaign_status(campaign_id: str) -> Result:
+        """Read durable campaign state, trial evidence and recovery receipts."""
+        return await app.invoke("regression_campaign_status", app.regressions.status, campaign_id)
+
+    @mcp.tool(annotations=Read)
+    async def list_function_traces() -> Result:
+        """List reviewed function-entry observers and immutable research provenance."""
+        return await app.invoke("list_function_traces", app.tracing.catalog)
+
+    @mcp.tool(annotations=Write)
+    async def trace_function(
+        symbol: Literal["native_stamina_apply", "goblin_health_subtract"],
+        seconds: Annotated[float, Field(ge=0.1, le=30)] = 2,
+        decompile: bool = False,
+    ) -> Result:
+        """Capture reviewed read-only native events and optional Ghidra export; verify hook removal and retain partial evidence."""
+
+        async def submit():
+            config.require_development()
+            return app.jobs.submit("trace_function", lambda: app.tracing.capture(symbol, seconds, decompile))
+
+        return await app.invoke("trace_function", submit)
+
+    @mcp.tool(annotations=Write)
+    async def create_gameplay_checkpoint(backup_id: str, trace_id: str, label: str) -> Result:
+        """Register a hash-checked save and advancing native world trace while the game is closed."""
+        return await app.invoke(
+            "create_gameplay_checkpoint", app.harness.checkpoint, backup_id, trace_id, label
+        )
+
+    @mcp.tool(annotations=Replace)
+    async def launch_gameplay_checkpoint(checkpoint_id: str) -> Result:
+        """Restore a registered save with an undo backup and launch an owned game. Client navigates observed Load Game menus."""
+
+        async def submit():
+            config.require_development()
+            return app.jobs.submit("launch_gameplay_checkpoint", lambda: app.harness.launch(checkpoint_id))
+
+        return await app.invoke("launch_gameplay_checkpoint", submit)
+
+    @mcp.tool(annotations=Write)
+    async def run_gameplay_harness(
+        checkpoint_id: str,
+        recipe: Literal["observe_idle", "neutral_input"] = "observe_idle",
+        seconds: Annotated[float, Field(ge=0.5, le=30)] = 2,
+        readiness_timeout: Annotated[int, Field(ge=1, le=120)] = 30,
+        stop_after: bool = True,
+    ) -> Result:
+        """Wait for advancing checkpoint callbacks, capture a bounded scenario, retain verdict/evidence and clean up."""
+
+        async def submit():
+            config.require_development()
+            return app.jobs.submit(
+                "gameplay_harness",
+                lambda: app.harness.run(checkpoint_id, recipe, seconds, readiness_timeout, stop_after),
+            )
+
+        return await app.invoke("run_gameplay_harness", submit)
 
     @mcp.resource("ddda://project/status")
     async def project_resource() -> str:

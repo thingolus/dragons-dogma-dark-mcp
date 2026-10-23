@@ -15,7 +15,7 @@ def test_real_sdk_tools_resources_and_errors(config):
         async with Client(server) as client:
             tools = await client.list_tools()
             names = {tool.name for tool in tools.tools}
-            assert len(names) == 39
+            assert len(names) == 50
             assert {"inspect_build", "search_knowledge", "start_session", "rollback_deployment"} <= names
             assert all(tool.output_schema for tool in tools.tools)
             catalog = await client.call_tool("list_scenarios", {})
@@ -111,3 +111,52 @@ def test_artifact_budget_includes_persisted_format(config):
         assert exc.code == "result_too_large"
     else:
         assert app.artifacts.get(saved["artifact_id"])["data"]["rows"]
+
+
+def test_expansion_stdio_memory_restart_checkpoint_and_guards(development):
+    from test_expansion import fixture_checkpoint
+
+    harness, _, trace, backup = fixture_checkpoint(development)
+    atomic_json(development.root / "config/local.json", development.settings.model_dump())
+    parameters = StdioServerParameters(
+        command=sys.executable, args=["-m", "ddda_mcp", "--project", str(development.root)]
+    )
+
+    async def run():
+        async with Client(parameters, read_timeout_seconds=20) as client:
+
+            async def call(name, args):
+                response = await client.call_tool(name, args)
+                assert not response.is_error, response.structured_content
+                return response.structured_content["data"]
+
+            checkpoint = await call(
+                "create_gameplay_checkpoint",
+                {"backup_id": backup, "trace_id": trace["artifact_id"], "label": "synthetic stdio fixture"},
+            )
+            note = await call(
+                "record_investigation_note",
+                {
+                    "title": "Checkpoint fixture",
+                    "body": "Synthetic transport check only",
+                    "kind": "finding",
+                    "evidence_ids": [checkpoint["artifact_id"]],
+                },
+            )
+            read = await call("read_investigation_note", {"note_id": note["note_id"]})
+            assert read["evidence_integrity"][0]["unchanged"]
+            invalid = await client.call_tool(
+                "create_regression_campaign",
+                {"checkpoint_id": checkpoint["artifact_id"], "revisions": ["a" * 40, "a" * 40]},
+            )
+            assert invalid.structured_content["error"]["code"] == "invalid_parameters"
+        async with Client(parameters, read_timeout_seconds=20) as client:
+            result = await client.call_tool("search_investigations", {"query": "checkpoint fixture"})
+            assert result.structured_content["data"]["notes"][0]["id"] == note["note_id"]
+            stale = await client.call_tool(
+                "record_investigation_note",
+                {"title": "stale", "body": "conflict", "note_id": note["note_id"], "expected_revision": 0},
+            )
+            assert stale.structured_content["error"]["code"] == "revision_conflict"
+
+    asyncio.run(run())

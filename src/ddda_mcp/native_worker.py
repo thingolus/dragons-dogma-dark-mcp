@@ -97,7 +97,19 @@ def run(config: Config, session_id: str, receipt_path: Path) -> None:
             threading.Thread(target=reader, daemon=True).start()
             session = device.attach(pid)
             session.on("detached", lambda *args: done.set())
-            script = session.create_script(Path(__file__).with_name("agent.js").read_text())
+            from .copied_groups import GROUPS
+            from .trace_catalog import TRACES
+
+            script = session.create_script(
+                "const REVIEWED_GROUPS = "
+                + json.dumps(GROUPS)
+                + ";\nconst REVIEWED_TRACES = "
+                + json.dumps(TRACES)
+                + ";\n"
+                + Path(__file__).with_name("agent.js").read_text()
+                + "\n"
+                + Path(__file__).with_name("tracing.js").read_text()
+            )
             script.on(
                 "message", lambda message, data: print(json.dumps(message), file=sys.stderr, flush=True)
             )
@@ -126,6 +138,16 @@ def run(config: Config, session_id: str, receipt_path: Path) -> None:
                         value = script.exports_sync.performance()
                     elif op == "death_refusals":
                         value = script.exports_sync.death_refusals()
+                    elif op == "copied_group" and request.get("group") in GROUPS:
+                        value = script.exports_sync.copied_group(request["group"])
+                    elif (
+                        op == "trace_start"
+                        and request.get("symbol") in TRACES
+                        and type(request.get("duration_ms")) is int
+                    ):
+                        value = script.exports_sync.trace_start(request["symbol"], request["duration_ms"])
+                    elif op == "trace_stop":
+                        value = script.exports_sync.trace_stop()
                     elif op == "neutral" and type(request.get("connected")) is bool:
                         value = script.exports_sync.neutral(request["connected"])
                     elif op == "title_start" and type(request.get("pressed")) is bool:
