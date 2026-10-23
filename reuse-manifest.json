@@ -2,7 +2,7 @@
   "schema_version": 1,
   "project": "Dragons Dogma Dark MCP",
   "created_date": "2026-10-22",
-  "status": "v0.5 death/refusal decoding and reviewed upstream compatibility gates; committed co-op 1.8 baseline with 225 named signatures and three input thunks; loaded-world MCP input remains unverified",
+  "status": "v0.6 diagnostic adapter registry, offline timelines/replay and feature investigations; committed co-op 1.8 baseline with 225 named signatures and three input thunks; loaded-world MCP input remains unverified",
   "validation_document": "docs/VALIDATION.md",
   "implementation_adaptations": {
     "scripts/inspect_game.py and static probe conventions": "src/ddda_mcp/binary.py",

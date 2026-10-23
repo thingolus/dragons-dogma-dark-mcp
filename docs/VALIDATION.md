@@ -1,6 +1,14 @@
 # Validation and remaining acceptance
 
-Version **0.5.0**, validated on 22 October 2026. Creator: **Thingolus**. This record distinguishes implementation tests, real native observations, and the remaining loaded-game input gate. Native observations below were established during v0.2. Version 0.3 added client integration, recoverable saves, recipes and benchmarks; v0.4 added static investigation, source/build comparisons and release automation without launching DDDA.
+Version **0.6.0**, validated on 23 October 2026. Creator: **Thingolus**. This record distinguishes implementation tests, real native observations, and the remaining loaded-game input gate. Native observations below were established during v0.2. Subsequent offline milestones do not inherit new native acceptance from those observations.
+
+## Diagnostic framework, timelines and future feature research
+
+The v0.6 Windows suite passes 183 tests. New coverage includes strict copied schemas, exact counters, pointer redaction, immutable input handling, original diagnostic replay, decoder/rule mismatch reporting, changed-evidence refusal, timeline pagination, clock/session/build/evidence separation, unknown identities, ambiguous equal timestamps, unobserved actors, world changes, ring overlap and saturated duplicates, failed cleanup/cancellation evidence, source scan budgets, dirty-source exclusion and cited dependency/test candidates. All seven new tools are exercised through an actual MCP stdio subprocess using synthetic fixtures in the normal test suite.
+
+The real-project `scripts/future_workflows_smoke.py` also passes: 39 discovered tools, diagnostic replay, timeline query/replay and feature investigations against the exact pinned `e6a64c2` source. It scans 902 eligible files / 5,793,684 bytes without source-budget omissions. Shared inventory (terms inventory/pickup) finds 18 symbol candidates, 43 source candidates and 11 test candidates; pawn commands finds 25/314/38; shared-life revival finds 18/57/17. These are lexical matches, not established feature feasibility or test coverage. Result caps and omitted result counts are preserved in the artifacts.
+
+The native performance/death capture persistence paths now use the reviewed registry. Their new integration is covered synthetically, including absence of controller input calls; no fresh game launch or native acceptance was performed. Existing native reader code remains unchanged. No co-op source, installed game payload, save or shared-life reserve was changed. The baseline and Thingolus/MIT credits are preserved. See [workflow contracts and extension guide](FUTURE_WORKFLOWS.md).
 
 ## Refusal diagnostics and compatibility gates
 
@@ -24,8 +32,8 @@ No game launch, deployment or save mutation was performed during this refresh. T
 
 | Check | Evidence |
 | --- | --- |
-| Python suite | 142 tests passed on Python 3.13 / Windows; Ruff lint and format checks pass. |
-| Real MCP stdio | 32 typed tools with output schemas and four resource routes; actual client calls against the server subprocess. |
+| Python suite | 183 tests passed on Python 3.13 / Windows; Ruff lint and format checks pass. |
+| Real MCP stdio | 39 typed tools with output schemas and four resource routes; actual client calls against the server subprocess. |
 | Codex connection | `dragons-dogma-dark` registered through Codex CLI; saved command verified by a real stdio handshake and v0.4 project-status call. Re-running registration preserved the identical entry. Existing chats may need a new session for discovery. |
 | Investigation bundle | Real `pawn_delete` bundle collected five research excerpts, source passages, disassembly, absolute references, bounded candidate caller scan and Ghidra export. Zero caller candidates in this bounded scan is not proof of no callers. |
 | Source comparison | On the v0.4 baseline, real pinned commit versus its parent reported 71 changed files, paginated in groups up to 50, with ABI/settings review hints. Tests verify dirty checkout exclusion, pagination and runtime-signature differences. |

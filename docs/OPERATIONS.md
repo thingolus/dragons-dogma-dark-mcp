@@ -1,6 +1,6 @@
 # Operations
 
-Version 0.5.0 by Thingolus. Configuration is read from ignored `config/local.json` or the `--config` path. Start with `config/local.example.json`; unknown configuration fields are rejected. Relative paths resolve against the project, not the caller's working directory. Run `--check` before connecting a client.
+Version 0.6.0 by Thingolus. Configuration is read from ignored `config/local.json` or the `--config` path. Start with `config/local.example.json`; unknown configuration fields are rejected. Relative paths resolve against the project, not the caller's working directory. Run `--check` before connecting a client.
 
 Preflight now reports committed upstream drift and exits 2 for review-required changes, 3 for incompatible changes, or 1 when the check is unavailable. See [compatibility checks](UPSTREAM_COMPATIBILITY.md). Use [death/refusal diagnostics](DIAGNOSTICS.md) for the copied developer ring and offline replay.
 
@@ -18,6 +18,10 @@ The installed connection uses the project's configured profile, currently develo
 4. Follow returned artifact IDs with `read_artifact`. Compare compatible captures with `compare_runs`.
 
 All 30 tools advertise input and output schemas. Invalid operations return structured errors. Tool descriptions and schemas provide the precise argument names and limits. Four resource routes expose project status, build identity, symbol data, and run artifacts. Use [analysis workflows](ANALYSIS.md) for investigation bundles and source/build comparisons, and [release instructions](RELEASES.md) for audited packages and CI.
+
+## Offline extension workflows
+
+For diagnostic fixtures, timelines and feature reports, use the [v0.6 workflow guide](FUTURE_WORKFLOWS.md). The three reviewed adapters share validation and private replay storage. Timelines retain clock/evidence boundaries and source hashes. Feature reports gather cited candidates from the reviewed commit. These tools can save private artifacts in the read-only profile and do not start a native session.
 
 ## Native sessions
 

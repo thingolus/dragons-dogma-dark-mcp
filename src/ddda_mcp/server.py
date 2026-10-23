@@ -24,6 +24,8 @@ from .compatibility import Compatibility
 from .config import Config
 from .death import decode_death
 from .deployment import Deployment
+from .diagnostics import Diagnostics
+from .features import Features
 from .investigation import Investigations
 from .jobs import Jobs
 from .knowledge import Knowledge
@@ -31,6 +33,7 @@ from .recipes import MOVEMENT, catalog
 from .saves import Saves
 from .session import Sessions
 from .source import Source
+from .timeline import Timelines
 
 
 class Envelope(BaseModel):
@@ -60,6 +63,9 @@ class Application:
         self.knowledge = Knowledge(self.source)
         self.binary = Binary(config)
         self.artifacts = Artifacts(config)
+        self.diagnostics = Diagnostics(self.artifacts)
+        self.timelines = Timelines(self.artifacts)
+        self.features = Features(self.source, self.knowledge, self.artifacts)
         self.jobs = Jobs(config)
         self.sessions = Sessions(config, self.artifacts, config_path)
         self.builds = Builds(config, self.source, self.artifacts)
@@ -94,6 +100,10 @@ class Application:
                 "source_revision_comparison",
                 "named_build_comparison",
                 "death_refusal_diagnostics",
+                "diagnostic_adapter_catalog",
+                "offline_regression_replay",
+                "event_timelines",
+                "feature_investigations",
                 "upstream_compatibility_gate",
                 "jobs",
                 "artifacts",
@@ -296,6 +306,58 @@ def create_server(config: Config, config_path: Path | None = None) -> tuple[MCPS
     ) -> Result:
         """Replay one copied down-refusal ring offline. Returns evaluated predicates, reasons and chronology without pointers; no game access or gameplay proof."""
         return await app.invoke("decode_death_diagnostic", decode_death, words)
+
+    @mcp.tool(annotations=Read)
+    async def list_diagnostic_adapters() -> Result:
+        """List reviewed diagnostic schemas, ABI versions and live requirements. No game access."""
+        return await app.invoke("list_diagnostic_adapters", app.diagnostics.catalog)
+
+    @mcp.tool(annotations=Write)
+    async def decode_diagnostic(
+        adapter: Literal["runtime", "performance", "death_refusals"],
+        payload: dict[str, Any],
+    ) -> Result:
+        """Validate/redact supplied copied fields and save a private replay fixture. Death payload is {words: [...]}; runtime/performance use catalog schemas. Evidence is offline_supplied, never live proof."""
+        return await app.invoke("decode_diagnostic", app.diagnostics.save, adapter, payload)
+
+    @mcp.tool(annotations=Write)
+    async def replay_diagnostic(artifact_id: str) -> Result:
+        """Run the current decoder on a stored diagnostic and compare the recorded result without game access."""
+        return await app.invoke("replay_diagnostic", app.diagnostics.replay, artifact_id)
+
+    @mcp.tool(annotations=Write)
+    async def build_event_timeline(
+        artifact_ids: Annotated[list[str], Field(min_length=1, max_length=16)],
+    ) -> Result:
+        """Normalize existing runtime/scenario/diagnostic artifacts into bounded event streams and rule findings. Incompatible clocks and sessions remain separate."""
+        return await app.invoke("build_event_timeline", app.timelines.build, artifact_ids)
+
+    @mcp.tool(annotations=Read)
+    async def query_event_timeline(
+        artifact_id: str,
+        kind: str = "",
+        actor: str = "",
+        text: str = "",
+        offset: Offset = 0,
+        limit: Annotated[int, Field(ge=1, le=100)] = 25,
+    ) -> Result:
+        """Filter and paginate timeline events and their findings by kind, actor or literal text."""
+        return await app.invoke(
+            "query_event_timeline", app.timelines.query, artifact_id, kind, actor, text, offset, limit
+        )
+
+    @mcp.tool(annotations=Write)
+    async def replay_event_timeline(artifact_id: str) -> Result:
+        """Rebuild a timeline with current decoders/rules, verify source hashes and compare recorded events/findings."""
+        return await app.invoke("replay_event_timeline", app.timelines.replay, artifact_id)
+
+    @mcp.tool(annotations=Write)
+    async def investigate_feature(
+        feature: Annotated[str, Field(min_length=1, max_length=256)],
+        terms: Annotated[list[str], Field(min_length=1, max_length=8)] | None = None,
+    ) -> Result:
+        """Gather pinned research, symbol/source/test candidates, quoted-include dependencies, evidence gaps and validation steps for a future feature. Lexical candidates are not verified call graphs."""
+        return await app.invoke("investigate_feature", app.features.investigate, feature, terms)
 
     @mcp.tool(annotations=Write)
     async def capture_trace(

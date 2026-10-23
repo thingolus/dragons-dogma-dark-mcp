@@ -1,6 +1,6 @@
 # Architecture
 
-Version 0.5.0 by Thingolus. The Python MCP server runs outside DDDA and exposes a typed stdio interface. Tools return structured envelopes containing request ID, operation, capture time, duration, provenance, and success or a machine-readable error. Larger results become local artifacts with bounded reads.
+Version 0.6.0 by Thingolus. The Python MCP server runs outside DDDA and exposes a typed stdio interface. Tools return structured envelopes containing request ID, operation, capture time, duration, provenance, and success or a machine-readable error. Larger results become local artifacts with bounded reads.
 
 ## Reuse and source identity
 
@@ -11,6 +11,10 @@ Static inspection parses one immutable byte snapshot of the PE file, derives its
 Investigation jobs compose existing source, knowledge, binary and optional Ghidra adapters. Binary component hashes must agree before aggregation. Relative-call scans report candidate encodings rather than verified function boundaries. Source comparison resolves full commit identities and compares Git blobs independently of the reviewed baseline; it does not adopt a new baseline. Build comparison accepts configured names and verified file-hash inventories, inventories immutable PE bytes, and reports static compatibility risks without changing deployment.
 
 ## Native boundary
+
+The reviewed adapter registry in `diagnostics.py` defines copied-value schemas, ABI identities, decoder versions and native requirements for runtime, performance and death diagnostics. It does not load arbitrary code or discover new game fields. Captures retain redacted payloads and decoded results; replay compares current decoding with recorded output. The native adapter still strips death pointers before RPC; Python redaction adds defense in depth. Performance/death snapshots persist replay artifacts through the same layer.
+
+`timeline.py` projects captures into bounded compatible streams keyed by session/build/evidence/clock identity, retaining input hashes and original row references. Deterministic versioned rules report observed transitions and failures, not causality. Replays refuse changed inputs and expose bounded result differences. `features.py` uses the immutable source and knowledge services to produce feature-level lexical candidates and quoted-include dependency reports without binary execution or gameplay access. See [contracts and extension workflow](FUTURE_WORKFLOWS.md).
 
 The original plan proposed wrapping the legacy mailbox. The implementation instead uses a dedicated typed child-process broker, adapting the existing research host's checks and ABI readers. The legacy mailbox has a single slot and is not a reliable multi-client coordination boundary. Existing game processes cause a refusal; there is no takeover or arbitrary attach tool.
 

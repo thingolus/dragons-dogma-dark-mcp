@@ -2,7 +2,7 @@
 
 A dedicated Model Context Protocol project for faster AI-assisted development of **Dragon's Dogma: Dark Arisen (DDDA / Dragon's Dogma 1)**.
 
-Created by **Thingolus**. Version **0.5.0** implements 32 typed MCP tools and four resource routes over stdio. It reuses the co-op project's pinned research, signatures, runtime ABI, build targets, and deployment conventions.
+Created by **Thingolus**. Version **0.6.0** implements 39 typed MCP tools and four resource routes over stdio. It reuses the co-op project's pinned research, signatures, runtime ABI, build targets, and deployment conventions.
 
 Verified against the real game: owned startup, copied observations, performance reads, trace comparison/cancellation, competing-client refusal, process cleanup, and deployment rollback. Save restore/undo was tested on a disposable copy, and Ghidra export on a local game database. Loaded-world neutral input remains subject to native offline readiness; it is not counted as passed. See [validation and remaining gates](docs/VALIDATION.md).
 
@@ -14,6 +14,8 @@ Verified against the real game: owned startup, copied observations, performance 
 | Jobs and evidence | `job_status`, `cancel_job`, `read_artifact`, `compare_runs` |
 | Build and deployment | `build_and_test`, `compare_source_revisions`, `compare_builds`, `prepare_deployment`, `apply_deployment`, `rollback_deployment` |
 | Refusal diagnostics and compatibility | `decode_death_diagnostic`, `check_upstream_compatibility`, `runtime_snapshot(group="death_refusals")` |
+| Reusable diagnostics and timelines | `list_diagnostic_adapters`, `decode_diagnostic`, `replay_diagnostic`, `build_event_timeline`, `query_event_timeline`, `replay_event_timeline` |
+| Future feature research | `investigate_feature` |
 | Saves | `backup_saves`, `restore_saves`, `save_restore_status`, `recover_save_restore` |
 
 The local project is an independent Git repository beside `ddda-local-coop`, under the DDDA workspace. The display name is **Dragons Dogma Dark MCP**; the repository slug is `dragons-dogma-dark-mcp`.
@@ -39,6 +41,8 @@ Version 0.4 adds a single-request investigation bundle, committed-source and nam
 Version 0.4.1 pins the committed co-op 1.8 candidate at `e6a64c2`, including its new research and nine additional signatures (225 symbols plus three input thunks). The existing status, performance and input ABI remains unchanged. Shared-life state is separate from `.sav` backup/restore; see [operations](docs/OPERATIONS.md#saves).
 
 Version 0.5 adds [death/refusal diagnostics and offline replay](docs/DIAGNOSTICS.md), plus [automated upstream compatibility checks](docs/UPSTREAM_COMPATIBILITY.md). Preflight detects committed source drift without automatically changing the reviewed baseline.
+
+Version 0.6 adds [reviewed diagnostic adapters, event timelines, regression replay and feature investigations](docs/FUTURE_WORKFLOWS.md). Three copied-value schemas share validation and redacted replay storage. Timelines correlate compatible captured evidence and report rule findings while keeping different clocks separate. Feature reports gather pinned research, symbol/source/test candidates, include dependencies and missing evidence. All seven new tools work offline; future live fields still require native research and acceptance.
 
 The default profile is `read_only`. Copy [config/local.example.json](config/local.example.json) to ignored `config/local.json` to customize paths. Set `profile` to `development` explicitly to enable build jobs, native sessions, deployment, save operations, and decompilation. Relative paths resolve against this project. Starting the MCP server does not start the game.
 

@@ -52,6 +52,9 @@ def stage(root=ROOT):
             "ddda_mcp/ExportMcp.java",
             "ddda_mcp/recipes.py",
             "ddda_mcp/death.py",
+            "ddda_mcp/diagnostics.py",
+            "ddda_mcp/timeline.py",
+            "ddda_mcp/features.py",
             "ddda_mcp/upstream_contract.json",
         } <= set(names)
         metadata = archive.read(next(n for n in names if n.endswith(".dist-info/METADATA"))).decode()

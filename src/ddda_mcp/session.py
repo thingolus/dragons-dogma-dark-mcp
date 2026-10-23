@@ -10,7 +10,7 @@ from pathlib import Path
 from .artifacts import Artifacts
 from .common import ToolFailure, read_json, utc_now
 from .config import Config
-from .death import POINTER_COLUMNS, decode_death
+from .diagnostics import decode
 from .ownership import game_processes, stop_owned
 from .recipes import MOVEMENT
 
@@ -167,22 +167,43 @@ class Sessions:
             if group == "runtime":
                 return status
             if group == "performance":
-                return {"runtime": status, "performance": await self._request("performance")}
+                result = decode("performance", await self._request("performance"))
+                result["summary"] = {"adapter": "performance", "decoder_version": result["decoder_version"]}
+                receipt = self.artifacts.put(
+                    "diagnostic_capture",
+                    result,
+                    {
+                        "session": self.receipt,
+                        "source_commit": self.config.settings.coop_source_commit,
+                        "evidence_class": "native_observation",
+                    },
+                )
+                return {
+                    "runtime": status,
+                    "performance": {
+                        **result["payload"],
+                        "coverage": "Existing callback-span instrumentation only; reading does not begin or seal collection.",
+                    },
+                    **receipt,
+                }
             if group == "death_refusals":
                 if status.get("developer_input") != 1 or status.get("faults") != 0:
                     raise ToolFailure(
                         "diagnostic_admission_failed", "Diagnostic needs a healthy developer runtime."
                     )
                 words = await self._request("death_refusals")
-                decoded = decode_death(words)
-                # Defense in depth for retained replay data; never store raw pointers.
-                words = list(words)
-                for row in range(8):
-                    for column in POINTER_COLUMNS:
-                        words[8 + row * 64 + column] = 0
+                result = decode("death_refusals", {"words": words})
+                decoded = result["decoded"]
+                words = result["payload"]["words"]
                 receipt = self.artifacts.put(
                     "death_diagnostic",
-                    {"summary": decoded["summary"], "words": words, "decoded": decoded},
+                    {
+                        "summary": decoded["summary"],
+                        "words": words,
+                        "decoded": decoded,
+                        "decoder_version": result["decoder_version"],
+                        "payload_sha256": result["payload_sha256"],
+                    },
                     {
                         "session": self.receipt,
                         "source_commit": self.config.settings.coop_source_commit,
