@@ -13,6 +13,15 @@ ACTIONS = {
     "backward",
     "left",
     "right",
+    "run_forward",
+    "run_backward",
+    "run_left",
+    "run_right",
+    "camera_left",
+    "camera_right",
+    "camera_up",
+    "camera_down",
+    "jump_forward",
     "light_attack",
     "heavy_attack",
     "jump",
@@ -138,7 +147,16 @@ class Controls:
             samples.append(await self.sessions._snapshot())
         state = await self.sessions._request("control_status")
         if not state["running"] or state["errors"]:
-            raise ToolFailure("control_interrupted", str(state))
+            error = ToolFailure("control_interrupted", str(state))
+            error.observation = {
+                "request": request,
+                "before": before,
+                "samples": samples,
+                "control_status": state,
+                "outcome": "inconclusive",
+                "limitations": "Interrupted input; sampled state does not establish the requested gameplay outcome.",
+            }
+            raise error
         after = samples[-1]
         base = before["actors"][role]
         return {
@@ -152,20 +170,25 @@ class Controls:
                 "callbacks_advanced": after["actors"][role]["frames"] > base["frames"],
                 "provider_neutral": state["action"] is None,
             },
-            "limitations": "Action transitions are observations, not proof of damage, interaction success or learned dodge.",
+            "limitations": "Action transitions are observations, not proof of damage, interaction success or learned dodge. Distance is raw coordinate displacement; region-origin shifts are not resolved and it is not a speed measurement.",
         }
 
     async def action(self, action, role=0, duration_ms=250):
         self.sessions._admit()
         async with self.sessions.operation_lock:
+            provenance = {**self.sessions.receipt, "evidence_class": "native_input_observation"}
             try:
                 data = await self._action(action, role, duration_ms)
-            except BaseException:
-                await self._release()
+            except BaseException as exc:
+                # Retain copied observations before release can clear the session receipt.
+                # Cleanup must still run if artifact persistence itself fails.
+                try:
+                    if hasattr(exc, "observation"):
+                        exc.details = self.artifacts.put("gameplay_action", exc.observation, provenance)
+                finally:
+                    await self._release()
                 raise
-        return self.artifacts.put(
-            "gameplay_action", data, {**self.sessions.receipt, "evidence_class": "native_input_observation"}
-        )
+        return self.artifacts.put("gameplay_action", data, provenance)
 
     async def world(self, seconds=2):
         self.sessions._admit()

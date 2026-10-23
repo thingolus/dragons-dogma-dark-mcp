@@ -10,6 +10,10 @@ Build the pinned source using `build_and_test`, then deploy that build through a
 
 `gameplay_action` accepts only named actions from `gameplay_catalog`. Individual input lasts 50–1000 ms and returns observed movement, action and menu changes. It never exposes arbitrary pad bytes or native calls. The lease expires after 30 seconds without an action, has a two-minute absolute limit, and releases on world/assignment/fault/frame-stall changes. The underlying runtime also expires provider samples after two seconds. Heartbeats do not renew the lease. Old input recipes refuse to compete with it.
 
+The catalog now has 27 fixed actions, including full-stick `run_forward`, `run_backward`, `run_left`, `run_right`, four `camera_*` directions and `jump_forward`. The existing walking actions retain their half-stick input. These additions use the same duration, role, menu and release guards. Running is not a stamina-consuming sprint command. Reported distance is raw coordinate displacement: unresolved region-origin shifts can produce large jumps, so it must not be treated as movement speed. Camera and forward-jump input contracts have synthetic coverage; their native effects still require acceptance.
+
+If the final control status reports a guard interruption, `gameplay_action` saves its copied before/sampled state, request and guard status as an inconclusive artifact before releasing input. The error includes that artifact reference. Cleanup still runs if artifact storage fails. A focus loss or minimized game can stop callbacks; the guard does not identify the underlying cause. Keep other desktop automation out of a native acceptance run.
+
 `control_gameplay(release)` disconnects synthetic pads and requires advancing callbacks with no held input and no assigned slots. If that cannot be verified, the owned game is stopped without saving. Menus may suppress callback advancement, so shutdown is a valid fallback and is reported separately.
 
 The dodge request uses the researched Strider RB, then RB+A+direction sequence. It requires 350–1000 ms to deliver both phases and a recent world observation of Strider/daggers. Learned evasion and successful dodge semantics are not inferred from sending this request. Attack commands similarly do not imply damage.
@@ -18,7 +22,7 @@ The dodge request uses the researched Strider RB, then RB+A+direction sequence. 
 
 - P1/P2 position, action, vocation, weapon kind, HP/max/white HP and stamina where validated.
 - Inventory item IDs and quantities, at most 256 entries per player, with availability flags and identity rechecks.
-- Nearby enemy IDs/type/category/position, capped at 24 results and 256 registry entries scanned. Only reviewed goblin-family resources are decoded. Radius is 3000 game units, without an occlusion claim.
+- Nearby registry candidate IDs/type/category/position under the historical `enemies` field, capped at 24 results and 256 registry entries scanned. Membership does not establish hostility. Resources are decoded only for the two reviewed classes, including quarry `uEm0900`; other classes retain null resources. Radius is 3000 game units around the last sampled party actor, without an occlusion claim. Co-op captures include `origin_role` and `origin_position`, so an empty scan around a distant P2 is not mistaken for an empty area around P1.
 - Observation timestamps/ages, omissions, callback errors, and verified hook cleanup.
 
 IDs are opaque and scoped to one capture and observed lifetime. Address reuse between observations cannot be ruled out. Missing callbacks, unreadable inventories and unsupported enemy health remain unavailable. Quest fields are explicitly unavailable because no reviewed quest layout has been established. The inn checkpoint's stage/name is not quest-state evidence. Maximum stamina requires a native calculation and is not fabricated from current stamina.

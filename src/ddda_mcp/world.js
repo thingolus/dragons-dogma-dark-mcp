@@ -63,7 +63,8 @@ function worldSample(actor){
     resources:resources?{...resources,stamina:worldFinite(who.info,0x2a8),hp_white:worldFinite(who.info,0x2a4)}:null,inventory};
   const enemies=worldEnemies(r,position),end=traceParty(actor);
   if(!end||!end.gs.equals(who.gs)||!end.info.equals(who.info)||end.stage!==who.stage||snapshot().generation!==r.generation)return;
-  r.party[who.role]=row;r.enemies={...enemies,observed_ms:now};r.samples++;
+  r.party[who.role]=row;r.enemies={...enemies,observed_ms:now,origin_role:who.role,origin_position:position,
+    scope:'Nearby registry candidates around the last sampled party actor; hostility is not established.'};r.samples++;
   for(const [key,value] of r.ids)if(now-value.seen>1000)r.ids.delete(key);
 }
 function worldLatest(){

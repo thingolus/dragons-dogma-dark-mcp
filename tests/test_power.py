@@ -128,6 +128,66 @@ def test_actual_control_js_expiry_guards_and_release():
     assert result.returncode == 0, result.stdout + result.stderr
 
 
+@pytest.mark.parametrize("storage_fails", [False, True])
+def test_interrupted_action_preserves_evidence_and_always_releases(development, monkeypatch, storage_fails):
+    import asyncio
+    from types import SimpleNamespace
+    from unittest.mock import AsyncMock
+
+    from ddda_mcp.control import Controls
+
+    before = {"actors": [{"frames": 10}, {"frames": 10}]}
+    provenance = {"session_id": "b" * 32}
+    sessions = SimpleNamespace(
+        receipt=dict(provenance),
+        operation_lock=asyncio.Lock(),
+        _admit=lambda: None,
+        _snapshot=AsyncMock(return_value=before),
+        _request=AsyncMock(
+            side_effect=[
+                {"accepted": True},
+                {
+                    "running": False,
+                    "errors": ["callbacks_stalled"],
+                    "action": None,
+                },
+            ]
+        ),
+    )
+    artifacts = Artifacts(development)
+    controls = Controls(sessions, artifacts)
+    released = []
+
+    async def release():
+        released.append(True)
+        sessions.receipt = None
+
+    controls._release = release
+    clock = iter([0.0, 0.0, 2.0])
+    monkeypatch.setattr("ddda_mcp.control.time", SimpleNamespace(monotonic=lambda: next(clock)))
+    monkeypatch.setattr("ddda_mcp.control.asyncio.sleep", AsyncMock())
+    if storage_fails:
+
+        def fail(*args):
+            raise OSError("storage unavailable")
+
+        monkeypatch.setattr(artifacts, "put", fail)
+
+    async def run():
+        with pytest.raises(OSError if storage_fails else ToolFailure) as caught:
+            await controls.action("run_forward", duration_ms=1000)
+        assert released == [True]
+        if not storage_fails:
+            assert caught.value.code == "control_interrupted"
+            doc = artifacts.get(caught.value.details["artifact_id"])
+            assert doc["provenance"]["session_id"] == provenance["session_id"]
+            assert doc["data"]["outcome"] == "inconclusive"
+            assert doc["data"]["samples"] == [before]
+            assert doc["data"]["control_status"]["errors"] == ["callbacks_stalled"]
+
+    asyncio.run(run())
+
+
 def test_legacy_campaign_recipe_defaults_to_idle():
     # Migration compatibility: pre-0.8 journals have no recipe key.
     service = object.__new__(Regressions)

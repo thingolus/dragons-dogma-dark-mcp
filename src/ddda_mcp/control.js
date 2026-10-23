@@ -3,6 +3,9 @@
 let controlRun = null;
 const CONTROL_ACTIONS = {
   forward:{ly:16000},backward:{ly:-16000},left:{lx:-16000},right:{lx:16000},
+  run_forward:{ly:32767},run_backward:{ly:-32767},run_left:{lx:-32767},run_right:{lx:32767},
+  camera_left:{rx:-16000},camera_right:{rx:16000},camera_up:{ry:16000},camera_down:{ry:-16000},
+  jump_forward:{ly:32767,buttons:0x1000},
   light_attack:{buttons:0x4000},heavy_attack:{buttons:0x8000},jump:{buttons:0x1000},
   interact:{buttons:0x2000},sheath:{lt:255},grab:{rt:255},
   dodge:{buttons:0x1200,ly:22000},menu:{buttons:0x10},inventory:{buttons:0x20},
@@ -14,7 +17,8 @@ function controlPads(role=-1, action={}, connected=true) {
   if(connected)for(let i=0;i<2;i++){
     const pad=p.add(i*20);pad.writeU8(1);pad.add(4).writeU32(packet);
     if(i===role){pad.add(8).writeU16(action.buttons||0);pad.add(10).writeS16(action.lx||0);
-      pad.add(12).writeS16(action.ly||0);pad.add(18).writeU8(action.lt||0);pad.add(19).writeU8(action.rt||0);}
+      pad.add(12).writeS16(action.ly||0);pad.add(14).writeS16(action.rx||0);pad.add(16).writeS16(action.ry||0);
+      pad.add(18).writeU8(action.lt||0);pad.add(19).writeU8(action.rt||0);}
   }
   if(call('CoopSetTestPads','int',['pointer','uint'])(p,4)!==1)throw Error('provider_refused');
 }

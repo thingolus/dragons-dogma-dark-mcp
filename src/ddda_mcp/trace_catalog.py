@@ -16,7 +16,7 @@ TRACES = {
         "bytes": "51578bf8f64730010f85c90000008b87b8010000f680fc0c0000010f85b60000",
         "source": "research/observe_fighter_damage.js",
         "kind": "health",
-        "limitation": "Validated goblin/hobgoblin resource subtraction only; source attribution and complete combat coverage are not inferred.",
+        "limitation": "Resource subtraction for the two reviewed actor classes (including quarry uEm0900); source attribution and complete combat coverage are not inferred. The historical symbol name is retained.",
     },
 }
 

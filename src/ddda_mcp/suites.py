@@ -36,7 +36,7 @@ def outcome(predicate, before, after, scenario, role=0, item_id=None, minimum=1.
         return {
             "passed": amount >= minimum,
             "damage": amount,
-            "scope": "Observed goblin-family main-resource damage; attacker attribution unverified.",
+            "scope": "Observed main-resource damage for reviewed actor classes; attacker attribution unverified.",
         }
     party_a, party_b = before.get("party", []), after.get("party", [])
     if len(party_a) <= role or len(party_b) <= role or not party_a[role] or not party_b[role]:

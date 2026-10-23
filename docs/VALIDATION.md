@@ -2,6 +2,14 @@
 
 Version **0.9.0**, validated on 23 October 2026. Creator: **Thingolus**. This record distinguishes synthetic implementation tests, actual native observations and remaining gameplay coverage. Earlier milestone sections below retain their historical evidence scope.
 
+## Native scenario follow-up
+
+The follow-up passes **284 Windows tests**, Ruff and both real-project stdio smokes. The tool count remains 77; the fixed action catalog grows from 18 to 27. New tests cover running/camera/forward-jump pad delivery and release, inconclusive artifact retention on guard interruption, cleanup after storage failure, and the registry scan's origin metadata.
+
+A native healing check passed: one Greenwarish raised P1 HP from 958.484497 to 1019 with stage 702 and generation 1 unchanged. Artifact `d7cb9373910e43ce825101473b8f368b` has SHA-256 `9617fb67db225f2ba8dacaed1bb51936fb63799b699af54d9c2d669db098897c`. The item was selected through observed native UI; this does not establish an automated curative recipe. Full-stick forward movement also produced native displacement with advancing callbacks and neutralized input.
+
+Damage, revival and loot did not obtain native acceptance. Quarry traversal was interrupted by stalled callbacks; subsequent UI checks observed repeated minimization and a separate desktop application's window covering DDDA. Focus contention is a candidate explanation, not a proven cause for every interruption. The final attempts restored their original saves, deployment, shared-life state and temporary display configuration. See [complete scenario evidence and remaining procedure](NATIVE_SCENARIOS.md). The historical v0.9 release results below predate this follow-up.
+
 ## General modding workbench (v0.9)
 
 The server exposes **77 typed tools**. All **282 Windows tests** pass, including the actual stdio asset/edit/repack/profile/package/fixture workflow, archive bounds and corruption, independent text merges, conflict detection, profile rollback, cancellation, foreign-owner refusal, incomplete-observation outcomes and asynchronous native callback cleanup. Ruff and both real-project stdio smokes pass. The unchanged `e6a64c2` reuse baseline has **50** hash-verified files. These tests establish implementation behavior; the following observations establish the narrower native coverage.

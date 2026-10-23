@@ -24,6 +24,14 @@ state.p2=1;state.generation++;advance();assert.equal(ctx.controlStatus().phase,'
 assert.throws(()=>ctx.controlAction('raw_memory',0,250),/invalid_action/);
 ctx.controlAction('forward',0,250);advance(50);assert.equal(last.readInt16LE(12),16000);
 advance(300);assert.equal(last.readInt16LE(12),0);assert.equal(ctx.controlStatus().action,null);
+for(const [name,offset,value] of [['run_forward',12,32767],['run_backward',12,-32767],['run_left',10,-32767],['run_right',10,32767],['camera_left',14,-16000],['camera_right',14,16000],['camera_up',16,16000],['camera_down',16,-16000],['jump_forward',12,32767]]){
+  ctx.controlAction(name,1,1000);advance(50);
+  assert.equal(last.readInt16LE(20+offset),value);assert.equal(last.readInt16LE(offset),0);
+  if(name==='jump_forward')assert.equal(last.readUInt16LE(28),0x1000);
+  advance(1000);assert.equal(last.readInt16LE(20+offset),0);
+  assert.throws(()=>ctx.controlAction(name,1,1001),/invalid_action/);
+  state.menu_gated=1;assert.throws(()=>ctx.controlAction(name,1,1000),/action_context/);state.menu_gated=0;
+}
 assert.throws(()=>ctx.controlAction('dodge',0,350),/strider/);
 assert.throws(()=>ctx.controlAction('dodge',0,100),/350ms/);
 state.generation++;advance();assert.equal(ctx.controlStatus().running,false);assert.equal(last[0],0);

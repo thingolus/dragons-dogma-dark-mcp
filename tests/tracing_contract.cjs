@@ -74,6 +74,9 @@ result=await context.worldStop();assert(result.cleanup.sealed);assert.equal(resu
 assert.equal(result.world.party[0].resources.hp,90);assert.equal(result.world.party[0].resources.hp_white,180);
 assert.equal(result.world.quests.available,false);assert.equal(result.world.party[0].inventory.available,false);
 assert.equal(result.world.party[1],null);assert(!JSON.stringify(result).includes('0x30000000'));
+assert.equal(result.world.enemies.origin_role,0);
+assert.deepEqual(result.world.enemies.origin_position,result.world.party[0].position);
+assert(result.world.enemies.scope.includes('hostility is not established'));
 console.log('world callback contract passed');
 
 // Standalone observer has no co-op calls and does not install hooks on load.

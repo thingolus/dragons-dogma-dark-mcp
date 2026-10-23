@@ -6,6 +6,8 @@ Created by **Thingolus**. Version **0.9.0** implements 77 typed MCP tools and fo
 
 The gameplay development tools now include expiring controller ownership, callback-only world inspection, reusable scenarios, failure diagnosis and isolated patch verification. Native checks have verified assignment and movement for both players while a physical controller remained connected, input release, party resources/inventories and deployment/save restoration. Combat damage, learned dodge, enemy presence and quest-state coverage remain separate gates. See [gameplay workflows](docs/GAMEPLAY_DEVELOPMENT.md) and [validation](docs/VALIDATION.md).
 
+The scenario follow-up adds full-stick running, camera directions, forward jumping and retained observations for interrupted actions. A native Greenwarish check passed the healing predicate. Damage, revival and loot acceptance remain open after interrupted traversal; see the [scenario evidence and retry procedure](docs/NATIVE_SCENARIOS.md).
+
 Version 0.9 adds behavior comparisons with analyzed Ghidra references, a reusable C++ SDK and standalone observer, private ARC/GMD editing, fixture/profile gameplay matrices, and journaled mod profiles with conflict detection and merging. See [general modding workflows](docs/MODDING_WORKBENCH.md) for supported formats, examples and recovery.
 
 | Workflow | Tools |
