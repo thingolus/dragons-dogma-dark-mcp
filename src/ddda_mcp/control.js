@@ -1,6 +1,8 @@
 // Reviewed developer-provider ownership. MIT, Thingolus and contributors.
 // Only copied runtime values and CoopSetTestPads are used outside native callbacks.
 let controlRun = null;
+let controlClaimPending = false;
+let controlClaimEpoch = 0;
 const CONTROL_ACTIONS = {
   forward:{ly:16000},backward:{ly:-16000},left:{lx:-16000},right:{lx:16000},
   run_forward:{ly:32767},run_backward:{ly:-32767},run_left:{lx:-32767},run_right:{lx:32767},
@@ -11,10 +13,10 @@ const CONTROL_ACTIONS = {
   dodge:{buttons:0x1200,ly:22000},menu:{buttons:0x10},inventory:{buttons:0x20},
   menu_up:{buttons:1},menu_down:{buttons:2},confirm:{buttons:0x1000},cancel:{buttons:0x2000},neutral:{}
 };
-function controlPads(role=-1, action={}, connected=true) {
+function controlPads(role=-1, action={}, connected=true, mode='pair') {
   const p=Memory.alloc(80);p.writeByteArray(new Uint8Array(80));
   const packet=nextInputPacket();
-  if(connected)for(let i=0;i<2;i++){
+  if(connected)for(let i=0;i<(mode==='solo'?1:2);i++){
     const pad=p.add(i*20);pad.writeU8(1);pad.add(4).writeU32(packet);
     if(i===role){pad.add(8).writeU16(action.buttons||0);pad.add(10).writeS16(action.lx||0);
       pad.add(12).writeS16(action.ly||0);pad.add(14).writeS16(action.rx||0);pad.add(16).writeS16(action.ry||0);
@@ -26,7 +28,20 @@ function controlGuard(s) {
   if(s.runtime!==2||s.guard_transport!==2||s.transport!==2||s.native_offline!==1||
     s.native_errors||s.faults||s.developer_input!==1||!s.stage||!s.generation)throw Error('control_guard');
 }
+function controlMenuBlocked(s,mode,p1Fresh=false) {
+  if(mode!=='solo')return Boolean(s.menu_gated);
+  // The pinned status bit is P2's engine_gate, which also rejects zero HP.
+  // Solo P1 may continue only with a fresh P1 callback and the copied P1
+  // canonical gameplay observation. Never infer gameplay from P2 HP alone.
+  if(!p1Fresh||s.actors[0].observed!==1)return true;
+  const words=rpc.exports.copiedGroup('inventory_menu');
+  const fields=REVIEWED_GROUPS.inventory_menu.fields;
+  const value=name=>words[fields.indexOf(name)];
+  return value('generation')!==s.generation||value('blocked')!==0||value('lifetime_state')!==1||
+    value('native_known')!==1||value('native_gameplay')!==1;
+}
 function controlRelease(reason='requested') {
+  ++controlClaimEpoch;
   const r=controlRun;
   if(r){clearInterval(r.timer);r.running=false;r.reason=reason;r.action=null;}
   controlPads(-1,{},false);
@@ -35,42 +50,65 @@ function controlRelease(reason='requested') {
 function controlStatus(){
   const r=controlRun;
   return r?{running:r.running,phase:r.phase,reason:r.reason||null,deadline_ms:r.deadline,
-    action:r.action?.name||null,errors:r.errors.slice()}: {running:false,phase:'unclaimed'};
+    mode:r.mode,action:r.action?.name||null,errors:r.errors.slice()}: {running:false,phase:'unclaimed'};
 }
-function controlClaim(){
-  if(controlRun?.running)throw Error('control_busy');
-  const s=snapshot();controlGuard(s);
-  if(s.menu_gated||!((s.p1===-1&&s.p2===-1)||(s.p1===0&&s.p2===1)))throw Error('assignment_or_menu_conflict');
-  const now=Date.now(),r={running:true,phase:s.p1===0?'ready':'neutral',started:now,
+async function controlClaim(mode='pair'){
+  if(!['pair','solo'].includes(mode))throw Error('invalid_control_mode');
+  if(controlRun?.running||controlClaimPending)throw Error('control_busy');
+  const claimEpoch=++controlClaimEpoch;
+  let s=snapshot();controlGuard(s);
+  const expectedP2=mode==='solo'?-1:1;
+  let p1Fresh=false;
+  if(mode==='solo'){
+    controlClaimPending=true;
+    try{
+      const previous=s;
+      await new Promise(resolve=>setTimeout(resolve,100));
+      if(claimEpoch!==controlClaimEpoch)throw Error('control_claim_cancelled');
+      s=snapshot();controlGuard(s);
+      if(s.stage!==previous.stage||s.generation!==previous.generation||s.p1!==previous.p1||s.p2!==previous.p2)throw Error('assignment_changed');
+      p1Fresh=s.actors[0].observed===1&&previous.actors[0].observed===1&&s.actors[0].frames>previous.actors[0].frames;
+    }finally{controlClaimPending=false;}
+  }
+  if(controlMenuBlocked(s,mode,p1Fresh)||!((s.p1===-1&&s.p2===-1)||(s.p1===0&&s.p2===expectedP2)))throw Error('assignment_or_menu_conflict');
+  const now=Date.now(),r={running:true,mode,expectedP2,phase:s.p1===0?'ready':'neutral',started:now,
     phaseStarted:now,deadline:now+30000,stage:s.stage,generation:s.generation,
-    timer:null,action:null,errors:[],frames:s.actors.map(a=>a.frames),advanced:now,last:now};
-  controlRun=r;controlPads();
+    timer:null,action:null,errors:[],frames:s.actors.map(a=>a.frames),advanced:now,last:now,
+    p1Frame:s.actors[0].frames,p1Advanced:p1Fresh?now:null};
+  controlRun=r;controlPads(-1,{},true,mode);
   r.timer=setInterval(()=>{
     try{
       const t=Date.now(),v=snapshot();controlGuard(v);
       if(t<r.last||t>r.deadline||t>r.started+120000)throw Error('control_expired');r.last=t;
       if(v.stage!==r.stage)throw Error('stage_changed');
+      if(v.actors[0].observed===1&&v.actors[0].frames>r.p1Frame){r.p1Frame=v.actors[0].frames;r.p1Advanced=t;}
+      const menuBlocked=controlMenuBlocked(v,r.mode,r.p1Advanced!==null&&t-r.p1Advanced<150);
       if(r.phase==='ready'){
-        if(v.p1!==0||v.p2!==1||v.generation!==r.generation)throw Error('assignment_changed');
-        if(!v.menu_gated){
-          if(v.actors.every((a,i)=>a.observed===1&&a.frames>r.frames[i])){r.frames=v.actors.map(a=>a.frames);r.advanced=t;}
+        if(v.p1!==0||v.p2!==r.expectedP2||v.generation!==r.generation)throw Error('assignment_changed');
+        if(!menuBlocked){
+          if(v.actors.every((a,i)=>(r.mode==='solo'&&i===1)||(a.observed===1&&a.frames>r.frames[i]))){r.frames=v.actors.map(a=>a.frames);r.advanced=t;}
           if(t-r.advanced>1500)throw Error('callbacks_stalled');
         }else r.advanced=t;
         const a=r.action;
         if(a&&t<a.until){
-          if(v.menu_gated&&!a.menu)throw Error('menu_changed');
+          if(menuBlocked&&!a.menu)throw Error('menu_changed');
           // RB precedes RB+A for the researched Strider evasion request.
-          controlPads(a.role,a.name==='dodge'&&t<a.started+200?{buttons:0x200}:CONTROL_ACTIONS[a.name]);
-        }else{r.action=null;controlPads();}
+          controlPads(a.role,a.name==='dodge'&&t<a.started+200?{buttons:0x200}:CONTROL_ACTIONS[a.name],true,r.mode);
+        }else{r.action=null;controlPads(-1,{},true,r.mode);}
       }else{
-        if(v.menu_gated)throw Error('menu_during_join');
+        if(menuBlocked)throw Error('menu_during_join');
         const elapsed=t-r.phaseStarted;
         if(r.phase==='neutral'&&elapsed>=400){r.phase='p1';r.phaseStarted=t;}
-        else if(r.phase==='p1'&&v.p1===0){r.phase='release';r.phaseStarted=t;}
+        else if(r.phase==='p1'&&v.p1===0){
+          if(r.mode==='solo'){
+            if(v.p2!==-1)throw Error('assignment_changed');
+            r.phase='ready';r.generation=v.generation;r.advanced=t;
+          }else{r.phase='release';r.phaseStarted=t;}
+        }
         else if(r.phase==='release'&&elapsed>=400){r.phase='p2';r.phaseStarted=t;}
         else if(r.phase==='p2'&&v.p1===0&&v.p2===1){r.phase='ready';r.generation=v.generation;r.advanced=t;}
         if(t-r.started>7000)throw Error('join_timeout');
-        controlPads(r.phase==='p1'?0:r.phase==='p2'?1:-1,{buttons:0x10});
+        controlPads(r.phase==='p1'?0:r.phase==='p2'?1:-1,{buttons:0x10},true,r.mode);
       }
     }catch(error){r.errors.push(String(error));try{controlRelease('guard');}catch(_){r.errors.push('release_failed');}}
   },50);
@@ -79,9 +117,10 @@ function controlClaim(){
 function controlAction(name,role,durationMs){
   if(!Object.hasOwn(CONTROL_ACTIONS,name)||![0,1].includes(role)||!Number.isInteger(durationMs)||durationMs<50||durationMs>1000)throw Error('invalid_action');
   const r=controlRun,s=snapshot();controlGuard(s);
-  if(!r?.running||r.phase!=='ready'||r.action||s.stage!==r.stage||s.generation!==r.generation||s.p1!==0||s.p2!==1)throw Error('control_unavailable');
+  if(!r?.running||r.phase!=='ready'||r.action||s.stage!==r.stage||s.generation!==r.generation||s.p1!==0||s.p2!==r.expectedP2)throw Error('control_unavailable');
+  if(r.mode==='solo'&&role!==0)throw Error('role_not_controlled');
   const menu=['menu','inventory','menu_up','menu_down','confirm','cancel'].includes(name);
-  if((s.menu_gated&&!menu)||(menu&&role!==0))throw Error('action_context');
+  if((controlMenuBlocked(s,r.mode,r.p1Advanced!==null&&Date.now()-r.p1Advanced<150)&&!menu)||(menu&&role!==0))throw Error('action_context');
   if(name==='dodge'){
     if(durationMs<350)throw Error('dodge_requires_350ms');
     const w=typeof worldLatest==='function'?worldLatest():null,p=w?.party?.[role];

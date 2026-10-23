@@ -69,8 +69,10 @@ class Controls:
     def __init__(self, sessions, artifacts):
         self.sessions, self.artifacts = sessions, artifacts
 
-    async def _claim(self):
-        await self.sessions._request("control_claim")
+    async def _claim(self, mode="pair"):
+        if mode not in {"pair", "solo"}:
+            raise ToolFailure("invalid_parameters", "Control mode must be pair or solo.")
+        await self.sessions._request("control_claim", mode=mode)
         deadline = time.monotonic() + 8
         while time.monotonic() < deadline:
             state = await self.sessions._request("control_status")
@@ -81,13 +83,13 @@ class Controls:
             await asyncio.sleep(0.1)
         raise ToolFailure("control_join_failed", "No verified assignment before the join deadline.")
 
-    async def claim(self):
+    async def claim(self, mode="pair"):
         self.sessions._admit()
         async with self.sessions.operation_lock:
             if (await self.sessions._request("control_status")).get("running"):
                 raise ToolFailure("control_busy", "A gameplay control lease is already active.")
             try:
-                return await self._claim()
+                return await self._claim(mode)
             except BaseException:
                 await self._release()
                 raise

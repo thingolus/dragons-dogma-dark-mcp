@@ -23,8 +23,11 @@ def test_real_sdk_tools_resources_and_errors(config):
             gameplay = await client.call_tool("gameplay_catalog", {})
             assert "movement_pair" in gameplay.structured_content["data"]["scenarios"]
             assert "dodge" in gameplay.structured_content["data"]["actions"]
+            assert gameplay.structured_content["data"]["control_modes"] == ["pair", "solo"]
             ownership = await client.call_tool("control_gameplay", {"operation": "claim"})
             assert ownership.structured_content["error"]["code"] == "profile_disabled"
+            solo = await client.call_tool("control_gameplay", {"operation": "claim", "mode": "solo"})
+            assert solo.structured_content["error"]["code"] == "profile_disabled"
             assert {"inspect_build", "search_knowledge", "start_session", "rollback_deployment"} <= names
             assert all(tool.output_schema for tool in tools.tools)
             catalog = await client.call_tool("list_scenarios", {})

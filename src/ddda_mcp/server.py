@@ -754,18 +754,21 @@ def create_server(config: Config, config_path: Path | None = None) -> tuple[MCPS
     async def gameplay_catalog() -> Result:
         """List fixed input actions, reusable scenarios and their exact evidence limits."""
         return await app.invoke(
-            "gameplay_catalog", lambda: {**app.scenarios.catalog(), "actions": sorted(ACTIONS)}
+            "gameplay_catalog",
+            lambda: {**app.scenarios.catalog(), "actions": sorted(ACTIONS), "control_modes": ["pair", "solo"]},
         )
 
     @mcp.tool(annotations=Write)
-    async def control_gameplay(operation: Literal["claim", "release", "status"]) -> Result:
-        """Claim expiring synthetic slots 0/1 on a reviewed build; release with callback verification or owned-process shutdown."""
+    async def control_gameplay(
+        operation: Literal["claim", "release", "status"], mode: Literal["pair", "solo"] = "pair"
+    ) -> Result:
+        """Claim expiring pair control or solo P1 control with pawn AI; mode applies to claim. Release verifies callbacks or stops the owned process."""
 
         async def perform():
             config.require_development()
             if operation == "status":
                 return await app.sessions._request("control_status")
-            return await (app.controls.claim() if operation == "claim" else app.controls.release())
+            return await (app.controls.claim(mode) if operation == "claim" else app.controls.release())
 
         return await app.invoke("control_gameplay", perform)
 

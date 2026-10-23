@@ -216,7 +216,7 @@ def run(config: Config, session_id: str, receipt_path: Path, backend="coop", bri
                         value = script.exports_sync.trace_stop()
                     elif op == "control_claim":
                         verify_control_build(config, receipt)
-                        value = script.exports_sync.control_claim()
+                        value = script.exports_sync.control_claim(request.get("mode", "pair"))
                     elif op == "control_status":
                         value = script.exports_sync.control_status()
                     elif op == "control_release":
