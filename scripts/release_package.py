@@ -49,6 +49,11 @@ def stage(root=ROOT):
         audit_names(names)
         assert {
             "ddda_mcp/agent.js",
+            "ddda_mcp/control.js",
+            "ddda_mcp/world.js",
+            "ddda_mcp/control.py",
+            "ddda_mcp/scenarios.py",
+            "ddda_mcp/patches.py",
             "ddda_mcp/ExportMcp.java",
             "ddda_mcp/recipes.py",
             "ddda_mcp/death.py",

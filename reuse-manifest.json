@@ -2,7 +2,7 @@
   "schema_version": 1,
   "project": "Dragons Dogma Dark MCP",
   "created_date": "2026-10-22",
-  "status": "v0.7 gameplay checkpoints, six additional copied diagnostics, reviewed function tracing, investigation memory and repeated regression campaigns; native neutral-input and one historical idle trial verified; combat and physical-controller acceptance remain separate",
+  "status": "v0.8 gameplay control, world snapshots, scenario predicates, diagnosis and isolated patch verification; exact native scope in docs/VALIDATION.md",
   "validation_document": "docs/VALIDATION.md",
   "implementation_adaptations": {
     "scripts/inspect_game.py and static probe conventions": "src/ddda_mcp/binary.py",
@@ -14,7 +14,9 @@
     "shared_life_down_debug.hpp and runtime.cpp recorder layout": "src/ddda_mcp/death.py and agent.js; source hashes reviewed in upstream_contract.json",
     "reviewed copied exports in runtime.cpp and hud.cpp": "src/ddda_mcp/copied_groups.py and agent.js",
     "observe_sprint_stamina.js and observe_fighter_damage.js": "src/ddda_mcp/trace_catalog.py and tracing.js (bounded observation only)",
-    "existing build/deploy/save primitives": "src/ddda_mcp/harness.py and regression.py (private receipts and cleanup)"
+    "existing build/deploy/save primitives": "src/ddda_mcp/harness.py and regression.py (private receipts and cleanup)",
+    "session.cpp developer assignment and strider_dodge_trial.js": "control.js and control.py (bounded fixed actions, expiring provider ownership)",
+    "party_inventory_snapshot.js, grab_registry.js, observe_mage_healing.js": "world.js (callback-only, copied values, bounded opaque identities)"
   },
   "upstream": {
     "repository": "https://github.com/thingolus/ddda-local-coop",
@@ -248,6 +250,31 @@
         {
           "path": "CREDITS.md",
           "git_blob_sha1": "4ce8ca8f734bc3181bc4fe4793ba709c5c4e7300"
+        }
+      ]
+    },
+    {
+      "name": "reviewed gameplay ownership and world layouts",
+      "files": [
+        {
+          "path": "src/session.cpp",
+          "git_blob_sha1": "8d77aceca462924285dea05429da6704040a8562"
+        },
+        {
+          "path": "research/party_inventory_snapshot.js",
+          "git_blob_sha1": "47ee686f1af7cc42de1057dff27688c97f48d5ac"
+        },
+        {
+          "path": "research/grab_registry.js",
+          "git_blob_sha1": "700b38ae1e8f512476eb03d999fc625b523ac4ed"
+        },
+        {
+          "path": "research/observe_mage_healing.js",
+          "git_blob_sha1": "c465e7073907dc8aa7ca2272e98db9d381268f90"
+        },
+        {
+          "path": "research/strider_dodge_trial.js",
+          "git_blob_sha1": "4fcaafe53bed165998a6dbbc88774f01ffad57aa"
         }
       ]
     }

@@ -22,6 +22,7 @@ from .common import ToolFailure, utc_now
 from .comparison import Comparisons
 from .compatibility import Compatibility
 from .config import Config
+from .control import ACTIONS, Controls
 from .death import decode_death
 from .deployment import Deployment
 from .diagnostics import Diagnostics
@@ -31,9 +32,11 @@ from .investigation import Investigations
 from .jobs import Jobs
 from .knowledge import Knowledge
 from .memory import InvestigationMemory
+from .patches import Patches
 from .recipes import MOVEMENT, catalog
 from .regression import Regressions
 from .saves import Saves
+from .scenarios import Diagnosis, Scenarios
 from .session import Sessions
 from .source import Source
 from .timeline import Timelines
@@ -60,6 +63,12 @@ Write = ToolAnnotations(readOnlyHint=False, destructiveHint=False, idempotentHin
 Replace = ToolAnnotations(readOnlyHint=False, destructiveHint=True, idempotentHint=False, openWorldHint=False)
 
 
+class SourceEdit(BaseModel):
+    path: str
+    expected_sha256: str | None = None
+    content: Annotated[str, Field(max_length=131072)]
+
+
 class Application:
     def __init__(self, config: Config, config_path: Path | None = None):
         self.config = config
@@ -81,6 +90,13 @@ class Application:
         self.regressions = Regressions(
             config, self.source, self.artifacts, self.builds, self.deployment, self.harness
         )
+        self.controls = Controls(self.sessions, self.artifacts)
+        self.scenarios = Scenarios(self.harness, self.controls, self.artifacts)
+        self.diagnosis = Diagnosis(self.source, self.artifacts)
+        self.patches = Patches(self.source, self.artifacts)
+        self.regressions.scenarios = self.scenarios
+        self.regressions.diagnosis = self.diagnosis
+        self.regressions.memory = self.memory
         self.comparisons = Comparisons(config, self.source, self.artifacts)
         self.compatibility = Compatibility(config, self.source, self.artifacts)
         self.investigations = Investigations(
@@ -127,6 +143,12 @@ class Application:
                 "scenario_catalog",
                 "reviewed_movement_recipes",
                 "gameplay_checkpoints",
+                "expiring_gameplay_control",
+                "callback_world_inspection",
+                "scenario_predicates",
+                "failure_diagnosis",
+                "isolated_patch_verification",
+                "verified_build_cache",
                 "copied_gameplay_diagnostics",
                 "reviewed_function_tracing",
                 "persistent_investigation_memory",
@@ -509,13 +531,17 @@ def create_server(config: Config, config_path: Path | None = None) -> tuple[MCPS
 
     @mcp.tool(annotations=Write)
     async def build_and_test(
-        configuration: Literal["Debug", "Release"] = "Debug", test_group: Literal["all", "core"] = "all"
+        configuration: Literal["Debug", "Release"] = "Debug",
+        test_group: Literal["all", "core"] = "all",
+        patch_id: str | None = None,
     ) -> Result:
         """Build pinned Win32 co-op source in an isolated directory and parse CTest JUnit results."""
 
         async def submit():
             config.require_development()
-            return app.jobs.submit("build_and_test", lambda: app.builds.build(configuration, test_group))
+            return app.jobs.submit(
+                "build_and_test", lambda: app.builds.build(configuration, test_group, patch_id=patch_id)
+            )
 
         return await app.invoke("build_and_test", submit)
 
@@ -616,10 +642,11 @@ def create_server(config: Config, config_path: Path | None = None) -> tuple[MCPS
         checkpoint_id: str,
         revisions: Annotated[list[str], Field(min_length=2, max_length=16)],
         repeats: Literal[2, 3] = 2,
+        recipe: str = "observe_idle",
     ) -> Result:
         """Plan repeated endpoint/midpoint gameplay trials over exact ordered commits; inconsistent results stay inconclusive."""
         return await app.invoke(
-            "create_regression_campaign", app.regressions.create, checkpoint_id, revisions, repeats
+            "create_regression_campaign", app.regressions.create, checkpoint_id, revisions, repeats, recipe
         )
 
     @mcp.tool(annotations=Replace)
@@ -680,7 +707,15 @@ def create_server(config: Config, config_path: Path | None = None) -> tuple[MCPS
     @mcp.tool(annotations=Write)
     async def run_gameplay_harness(
         checkpoint_id: str,
-        recipe: Literal["observe_idle", "neutral_input"] = "observe_idle",
+        recipe: Literal[
+            "observe_idle",
+            "neutral_input",
+            "movement_pair",
+            "attack_pair",
+            "jump_pair",
+            "menu_roundtrip",
+            "interaction_menu",
+        ] = "observe_idle",
         seconds: Annotated[float, Field(ge=0.5, le=30)] = 2,
         readiness_timeout: Annotated[int, Field(ge=1, le=120)] = 30,
         stop_after: bool = True,
@@ -691,10 +726,71 @@ def create_server(config: Config, config_path: Path | None = None) -> tuple[MCPS
             config.require_development()
             return app.jobs.submit(
                 "gameplay_harness",
-                lambda: app.harness.run(checkpoint_id, recipe, seconds, readiness_timeout, stop_after),
+                lambda: app.scenarios.run(checkpoint_id, recipe, seconds, readiness_timeout, stop_after),
             )
 
         return await app.invoke("run_gameplay_harness", submit)
+
+    @mcp.tool(annotations=Read)
+    async def gameplay_catalog() -> Result:
+        """List fixed input actions, reusable scenarios and their exact evidence limits."""
+        return await app.invoke(
+            "gameplay_catalog", lambda: {**app.scenarios.catalog(), "actions": sorted(ACTIONS)}
+        )
+
+    @mcp.tool(annotations=Write)
+    async def control_gameplay(operation: Literal["claim", "release", "status"]) -> Result:
+        """Claim expiring synthetic slots 0/1 on a reviewed build; release with callback verification or owned-process shutdown."""
+
+        async def perform():
+            config.require_development()
+            if operation == "status":
+                return await app.sessions._request("control_status")
+            return await (app.controls.claim() if operation == "claim" else app.controls.release())
+
+        return await app.invoke("control_gameplay", perform)
+
+    @mcp.tool(annotations=Write)
+    async def gameplay_action(
+        action: str, role: Literal[0, 1] = 0, duration_ms: Annotated[int, Field(ge=50, le=1000)] = 250
+    ) -> Result:
+        """Execute one fixed action under an acquired lease; report observed movement/action/menu changes separately from input delivery."""
+        return await app.invoke("gameplay_action", app.controls.action, action, role, duration_ms)
+
+    @mcp.tool(annotations=Write)
+    async def inspect_world(seconds: Annotated[float, Field(ge=0.2, le=10)] = 2) -> Result:
+        """Capture callback-only party vitals, inventories and bounded nearby enemy identities; quests explicitly unavailable."""
+        return await app.invoke("inspect_world", app.controls.world, seconds)
+
+    @mcp.tool(annotations=Write)
+    async def diagnose_scenario(
+        artifact_id: str, related_ids: Annotated[list[str] | None, Field(max_length=8)] = None
+    ) -> Result:
+        """Locate the first observed predicate divergence and link logs, source and optional trace/Ghidra artifacts without asserting causality."""
+        return await app.invoke("diagnose_scenario", app.diagnosis.analyze, artifact_id, related_ids)
+
+    @mcp.tool(annotations=Write)
+    async def create_source_patch(
+        label: str, edits: Annotated[list[SourceEdit], Field(min_length=1, max_length=16)]
+    ) -> Result:
+        """Create hash-checked C/C++ replacements applied only to isolated build sources. Never changes the co-op working tree."""
+        return await app.invoke(
+            "create_source_patch", app.patches.create, label, [edit.model_dump() for edit in edits]
+        )
+
+    @mcp.tool(annotations=Write)
+    async def create_patch_verification(
+        checkpoint_id: str, patch_id: str, recipe: str = "observe_idle", repeats: Literal[1, 2, 3] = 1
+    ) -> Result:
+        """Create baseline/candidate trials with isolated builds, selected scenario, diagnosis, rollback and investigation memory. Advance through the campaign tools."""
+        return await app.invoke(
+            "create_patch_verification",
+            app.regressions.create_verification,
+            checkpoint_id,
+            patch_id,
+            recipe,
+            repeats,
+        )
 
     @mcp.resource("ddda://project/status")
     async def project_resource() -> str:

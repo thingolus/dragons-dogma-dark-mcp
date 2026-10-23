@@ -1,8 +1,23 @@
 # Validation and remaining acceptance
 
-Version **0.7.0**, validated on 23 October 2026. Creator: **Thingolus**. This record distinguishes synthetic implementation tests, actual native observations and remaining gameplay coverage. Earlier milestone sections below retain their historical evidence scope.
+Version **0.8.0**, validated on 23 October 2026. Creator: **Thingolus**. This record distinguishes synthetic implementation tests, actual native observations and remaining gameplay coverage. Earlier milestone sections below retain their historical evidence scope.
 
-## Five live-development additions
+## Gameplay development expansion (v0.8)
+
+The server exposes **57 typed tools**, five additional gameplay scenarios and 18 fixed input actions. The Windows suite passes **237 tests**, including the shipped JavaScript under synthetic native-memory/provider fixtures, callback-only world collection, assignment/expiry/release guards, pointer redaction, patch path/hash conflicts, scenario cancellation/cleanup, unknown predicate results and baseline/candidate comparison. Ruff and both real-project stdio smokes pass. The unchanged `e6a64c2` baseline now has **47** explicitly pinned reuse files.
+
+Native acceptance on 23 October used the restored inn checkpoint at stage 220 and two fresh isolated Debug builds. Both passed all **125 CTest entries**. The baseline build receipt is `b9294fae87d4429f8e544a92badcd768`; candidate `b3c6f636be8c49a68ae59c7967187f63` applied a harmless test-source comment overlay solely inside its archive.
+
+- The new provider acquired P1 slot 0 and P2 slot 1 while physical controller mask remained 1. Both actors moved at least one game unit, and release was verified with advancing copied callbacks, no held input and disconnected assignments.
+- Full baseline/candidate campaign `012da5c29d1343888e36957d89dda69c` completed with both trials passing. Evidence: baseline `fcfe9eb993d546369f1eb0c281e50c79` (SHA-256 `26d6cb8a177f16af9ada3c52463d5364572fced6c7872d7d8f62b6001e9314a0`) and candidate `de90637e85b04289a69c95384c83fea2` (`f15fbf31bc27a650da4a9182fc852b3732ee52f49e11006a1ecef33955c688d6`). The original baseline build was reused with artifact/binary hashes rechecked; native trials ran afresh.
+- Both trials restored the original installation and saves and verified unchanged shared-life state. Each retained a diagnosis; the completed comparison created evidence-linked investigation note `2691864e2d3744bfa9abb893075ba432`. The test-only patch is an orchestration fixture, not a gameplay improvement or measured development speedup.
+- World capture `51b791c41f8849b2aadf489ae093e8d4` (SHA-256 `b763ed962f39e1c05ca0700a1551f55f8809bcd3d8758a397ea6fb421f9b2886`) collected 18 callback samples with both party resources and inventories available. The inn registry contained four actors and no nearby enemies. Hook removal was verified with zero active callbacks and no capture errors.
+- Attack scenario `7b06278ba5f34d3f8dd0092f05b4c061` (SHA-256 `ffde2125b729df7760d7b7117fdbb7d665d0780e9a602c667e3b56d21c442d9f`) observed action transitions for both players and verified input release. Its automatically attached health observer installed and sealed without errors; zero health events occurred in the inn, so damage remains unverified. Diagnosis `51ce62acfacd4c28a20313479824caa5` retains that distinction.
+- The attack lunge moved P1 about 296 game units, outside the checkpoint's 100-unit tolerance. The following jump scenario correctly timed out at readiness; it sent no jump input. The helper aborted its campaign and restored the installation and saves. Jump, menu and interaction scenarios still require separate native trials from a freshly loaded checkpoint.
+
+See [workflow contracts](GAMEPLAY_DEVELOPMENT.md). Quest-state layouts, learned dodge, successful object interaction, enemy presence/health and damage attribution are not established by these tests. No physical-controller gameplay acceptance is claimed. Native menus were selected from observed UI; no security prompt needed action. The sibling co-op working tree was never used or edited. Raw evidence, saves, binaries and caches remain private.
+
+## Historical v0.7 live-development additions
 
 The Windows suite passes **217 tests**, including real stdio checkpoint registration and investigation persistence across subprocess restarts, cancellation/cleanup, stale evidence, copied ABI decoding, repeated bisection and immutable build/deploy/restore orchestration. Ruff, the real-project stdio smoke, future-workflow smoke, archive audit and isolated wheel import pass. Three native investigation notes persisted across a fresh stdio server and all evidence hashes rechecked successfully. The server exposes **50 typed tools** and four resource routes. The nine-adapter catalog and two reviewed trace signatures are linked to the unchanged `e6a64c2` research baseline. See [workflows and limits](LIVE_DEVELOPMENT.md).
 
@@ -48,8 +63,8 @@ No game launch, deployment or save mutation was performed during this refresh. T
 
 | Check | Evidence |
 | --- | --- |
-| Python suite | 217 tests passed on Python 3.13 / Windows; Ruff lint and format checks pass. |
-| Real MCP stdio | 50 typed tools with output schemas and four resource routes; actual client calls against the server subprocess. |
+| Python suite | 237 tests passed on Python 3.13 / Windows; Ruff lint and format checks pass. |
+| Real MCP stdio | 57 typed tools with output schemas and four resource routes; actual client calls against the server subprocess. |
 | Codex connection | `dragons-dogma-dark` registered through Codex CLI; saved command verified by a real stdio handshake and v0.4 project-status call. Re-running registration preserved the identical entry. Existing chats may need a new session for discovery. |
 | Investigation bundle | Real `pawn_delete` bundle collected five research excerpts, source passages, disassembly, absolute references, bounded candidate caller scan and Ghidra export. Zero caller candidates in this bounded scan is not proof of no callers. |
 | Source comparison | On the v0.4 baseline, real pinned commit versus its parent reported 71 changed files, paginated in groups up to 50, with ABI/settings review hints. Tests verify dirty checkout exclusion, pagination and runtime-signature differences. |
@@ -59,7 +74,7 @@ No game launch, deployment or save mutation was performed during this refresh. T
 | Save crash recovery | Actual subprocess termination before replacement, after the first file, and after the last file; both resume and rollback reconstruct the full intended set. Recovery and undo also pass through actual MCP stdio. Interrupted rollback, partial staging, unknown edits, corrupted backups, duplicate paths, terminal-marker cleanup and cross-config launch blocking are covered. Fixtures only. |
 | Recipe contracts | Six cataloged recipes, including P1 forward/right and P2 forward. Synthetic tests cover assigned slots, input contents/packet progression, guards, one-shot limits, world changes, cancellation evidence and stop-on-cleanup-failure. No real movement acceptance claimed. |
 | Paired tool workflows | Four tasks, five alternating pairs each. Exact source/identity checks pass; latency and response bytes recorded in [benchmarks](BENCHMARKS.md). No AI reasoning or model-token measurement. |
-| Pinned research and PE | 42 source inventory entries verified, 139 documents indexed, supported x86 executable identified and disassembled. Dirty co-op source is excluded. |
+| Pinned research and PE | 47 source inventory entries verified, 139 documents indexed, supported x86 executable identified and disassembled. Dirty co-op source is excluded. |
 | Full isolated build | Current baseline: all 125 upstream CTest entries passed through `build_and_test`, including D3D. The earlier 122-test result below belongs to the previous pin. |
 | Owned native launch | Real Frida bootstrap and offline transport self-test, exact executable/runtime/settings hashes, copied status and performance ABI reads. |
 | Observation workflow | Two bounded captures, comparison, cancellation with partial evidence, and post-cancellation status succeeded. A second MCP client was refused ownership. |

@@ -2,12 +2,13 @@
 
 A dedicated Model Context Protocol project for faster AI-assisted development of **Dragon's Dogma: Dark Arisen (DDDA / Dragon's Dogma 1)**.
 
-Created by **Thingolus**. Version **0.7.0** implements 50 typed MCP tools and four resource routes over stdio. It reuses the co-op project's pinned research, signatures, runtime ABI, build targets, and deployment conventions.
+Created by **Thingolus**. Version **0.8.0** implements 57 typed MCP tools and four resource routes over stdio. It reuses the co-op project's pinned research, signatures, runtime ABI, build targets, and deployment conventions.
 
-Verified against the real game: owned startup, copied observations, performance reads, trace comparison/cancellation, competing-client refusal, process cleanup, and deployment rollback. Save restore/undo was tested on a disposable copy, and Ghidra export on a local game database. Loaded-world neutral input, six additional copied diagnostics, stamina tracing, and one historical build/deploy/gameplay/rollback trial now pass their bounded native checks. Combat and physical-controller movement remain unverified. See [validation and remaining gates](docs/VALIDATION.md).
+The gameplay development tools now include expiring controller ownership, callback-only world inspection, reusable scenarios, failure diagnosis and isolated patch verification. Native checks have verified assignment and movement for both players while a physical controller remained connected, input release, party resources/inventories and deployment/save restoration. Combat damage, learned dodge, enemy presence and quest-state coverage remain separate gates. See [gameplay workflows](docs/GAMEPLAY_DEVELOPMENT.md) and [validation](docs/VALIDATION.md).
 
 | Workflow | Tools |
 | --- | --- |
+| Gameplay development | `gameplay_catalog`, `control_gameplay`, `gameplay_action`, `inspect_world`, `diagnose_scenario`, `create_source_patch`, `create_patch_verification` |
 | Project and knowledge | `project_status`, `verify_upstream`, `search_knowledge`, `lookup_symbol`, `read_source` |
 | Executable analysis | `inspect_build`, `inspect_binary`, `decompile_symbol`, `investigate_symbol` |
 | Owned research sessions | `session_status`, `start_session`, `stop_session`, `runtime_snapshot`, `capture_trace`, `run_scenario`, `list_scenarios` |

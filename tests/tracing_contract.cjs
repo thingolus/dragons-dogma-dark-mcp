@@ -53,3 +53,17 @@ invocation={context:{eax:life,esp:stack}};listener.onEnter.call(invocation);tabl
 result=context.traceStop();assert(result.sealed);assert.equal(result.rows[0].applied_damage,10);assert.equal(result.rows[1].lifetime_changed,true);
 assert.equal(result.active_callbacks,0);assert.equal(detaches,2);
 console.log('tracing contract passed');
+
+// The shipped world inspector reads native values only when a reviewed callback fires.
+context.rpc={exports:{}};
+vm.runInNewContext(fs.readFileSync(process.argv[3],'utf8'),context);
+allocate(0x18fa4d4,4);allocate(0x18fa4d8,4);
+actor.u32(0x1d0c,1);actor.u32(0x1d18,table.address);table.u32(0,life.address);life.u32(0x1b4,actor.address);
+life.f32(8,90);life.f32(12,200);gs.f32(0xa76d0+0x2a4,180);
+context.worldStart(1000);assert.equal(context.worldLatest().samples,0);
+invocation={context:{eax:actor,esp:stack}};listener.onEnter.call(invocation);listener.onLeave.call(invocation);
+result=context.worldStop();assert(result.cleanup.sealed);assert.equal(result.world.samples,1);
+assert.equal(result.world.party[0].resources.hp,90);assert.equal(result.world.party[0].resources.hp_white,180);
+assert.equal(result.world.quests.available,false);assert.equal(result.world.party[0].inventory.available,false);
+assert.equal(result.world.party[1],null);assert(!JSON.stringify(result).includes('0x30000000'));
+console.log('world callback contract passed');

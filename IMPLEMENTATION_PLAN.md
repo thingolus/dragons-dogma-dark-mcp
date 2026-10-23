@@ -2,7 +2,7 @@
 
 **Date:** 22 October 2026
 
-**Delivery state:** version 0.7.0 implemented, including all five live development additions in the requested order: checkpoint harness, broader copied diagnostics, reviewed runtime tracing, persistent investigation memory, then repeated regression isolation. See [live development workflows](docs/LIVE_DEVELOPMENT.md) and [validation](docs/VALIDATION.md) for exact scope and evidence. This document retains the original planning estimates and acceptance gates; physical-controller movement and combat acceptance remain separate.
+**Delivery state:** version 0.8.0 adds the next five gameplay development capabilities: expiring provider ownership, callback world inspection, reusable scenario predicates, failure diagnosis, and isolated baseline/patch verification with build reuse and restoration. See [workflow contracts](docs/GAMEPLAY_DEVELOPMENT.md) and [validation](docs/VALIDATION.md). Historical milestones and estimates below retain their original scope.
 
 **Primary source:** [ddda-local-coop at `61ed1bf`](https://github.com/thingolus/ddda-local-coop/tree/61ed1bf830141b75981babe362cef42579eb98e3).
 

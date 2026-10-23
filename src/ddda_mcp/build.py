@@ -16,9 +16,10 @@ import psutil
 
 from .artifacts import Artifacts
 from .binary import Binary
-from .common import ToolFailure, contained, digest
-from .config import GAME_SHA256, Config
+from .common import ToolFailure, atomic_json, contained, digest, read_json
+from .config import BASELINE, GAME_SHA256, Config
 from .ownership import game_lease, require_closed
+from .patches import Patches, cache_key
 from .source import Source
 
 
@@ -128,7 +129,11 @@ class Builds:
         )
 
     async def build(
-        self, configuration: str = "Debug", test_group: str = "all", revision: str | None = None
+        self,
+        configuration: str = "Debug",
+        test_group: str = "all",
+        revision: str | None = None,
+        patch_id: str | None = None,
     ) -> dict:
         self.config.require_development()
         # The full upstream suite creates a D3D device. A fullscreen game can
@@ -136,10 +141,12 @@ class Builds:
         if test_group == "all":
             with game_lease(self.config.game):
                 require_closed()
-                return await self._build_locked(configuration, test_group, revision)
-        return await self._build_locked(configuration, test_group, revision)
+                return await self._build_locked(configuration, test_group, revision, patch_id)
+        return await self._build_locked(configuration, test_group, revision, patch_id)
 
-    async def _build_locked(self, configuration: str, test_group: str, revision: str | None = None) -> dict:
+    async def _build_locked(
+        self, configuration: str, test_group: str, revision: str | None = None, patch_id: str | None = None
+    ) -> dict:
         self.config.require_development()
         if configuration not in {"Debug", "Release"} or test_group not in {"all", "core"}:
             raise ToolFailure("invalid_parameters", "Choose Debug/Release and all/core.")
@@ -158,6 +165,27 @@ class Builds:
             ctest = str(
                 Path(cmake).with_name("ctest.exe" if Path(cmake).suffix.lower() == ".exe" else "ctest")
             )
+            patch_sha = digest(self.artifacts.path(patch_id)) if patch_id else None
+            key = await asyncio.to_thread(cache_key, source, cmake, configuration, test_group, patch_sha)
+            cache_path = self.config.artifacts / "build-cache" / (str(key) + ".json")
+            if key and cache_path.exists():
+                cached = read_json(cache_path)
+                doc = self.artifacts.get(cached["artifact_id"])
+                directory = contained(self.config.artifacts, Path(doc["data"]["build_directory"]))
+                if (
+                    digest(self.artifacts.path(cached["artifact_id"])) == cached["sha256"]
+                    and doc["data"]["summary"]["passed"]
+                    and all(
+                        (directory / name).is_file() and digest(directory / name) == sha
+                        for name, sha in doc["data"]["binaries"].items()
+                    )
+                ):
+                    return {
+                        **cached,
+                        "summary": doc["data"]["summary"],
+                        "cache_hit": True,
+                        "native_acceptance": "unverified",
+                    }
             folder = self.config.artifacts / "builds" / uuid.uuid4().hex
             source_root, build_root = folder / "source", folder / "build"
             source_root.mkdir(parents=True)
@@ -176,6 +204,11 @@ class Builds:
                 "research",
             )
             await asyncio.to_thread(unpack_archive, archive, source_root)
+            patch = (
+                Patches(source, self.artifacts).apply(patch_id, source_root, source.commit)
+                if patch_id
+                else None
+            )
             dependency = self.config.source / "external/minhook"
             if not dependency.is_dir():
                 raise ToolFailure(
@@ -257,12 +290,30 @@ class Builds:
                 {
                     "source_commit": source.commit,
                     "minhook_commit": pin,
+                    "patch_id": patch_id,
+                    "patch_sha256": patch_sha,
+                    "control_reviewed": source.commit == BASELINE
+                    and (
+                        patch is None or all(e["path"].startswith("tests/") for e in patch["data"]["edits"])
+                    ),
                     "configuration": configuration,
                     "recipe": "build_" + test_group,
                     "evidence_class": "static",
                 },
             )
-            return {**artifact, "summary": summary, "native_acceptance": "unverified"}
+            if summary["passed"]:
+                if key:
+                    atomic_json(cache_path, artifact)
+                if (
+                    source.commit == BASELINE
+                    and (patch is None or all(e["path"].startswith("tests/") for e in patch["data"]["edits"]))
+                    and "ddcoop_runtime.dll" in binaries
+                ):
+                    atomic_json(
+                        self.config.artifacts / "control-builds" / (binaries["ddcoop_runtime.dll"] + ".json"),
+                        artifact,
+                    )
+            return {**artifact, "summary": summary, "cache_hit": False, "native_acceptance": "unverified"}
 
     async def decompile(self, symbol_name: str) -> dict:
         self.config.require_development()

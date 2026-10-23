@@ -15,7 +15,12 @@ def test_real_sdk_tools_resources_and_errors(config):
         async with Client(server) as client:
             tools = await client.list_tools()
             names = {tool.name for tool in tools.tools}
-            assert len(names) == 50
+            assert len(names) == 57
+            gameplay = await client.call_tool("gameplay_catalog", {})
+            assert "movement_pair" in gameplay.structured_content["data"]["scenarios"]
+            assert "dodge" in gameplay.structured_content["data"]["actions"]
+            ownership = await client.call_tool("control_gameplay", {"operation": "claim"})
+            assert ownership.structured_content["error"]["code"] == "profile_disabled"
             assert {"inspect_build", "search_knowledge", "start_session", "rollback_deployment"} <= names
             assert all(tool.output_schema for tool in tools.tools)
             catalog = await client.call_tool("list_scenarios", {})

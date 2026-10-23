@@ -14,6 +14,7 @@ import psutil
 from .binary import Binary
 from .common import ToolFailure, atomic_json, utc_now
 from .config import GAME_SHA256, Config
+from .control import verify_control_build
 from .deployment import installed, verify_offline_settings
 from .ownership import game_lease, require_closed, stop_owned
 from .recipes import MOVEMENT
@@ -108,7 +109,11 @@ def run(config: Config, session_id: str, receipt_path: Path) -> None:
                 + ";\n"
                 + Path(__file__).with_name("agent.js").read_text()
                 + "\n"
-                + Path(__file__).with_name("tracing.js").read_text()
+                + Path(__file__).with_name("tracing.js").read_text(encoding="utf-8")
+                + "\n"
+                + Path(__file__).with_name("world.js").read_text(encoding="utf-8")
+                + "\n"
+                + Path(__file__).with_name("control.js").read_text(encoding="utf-8")
             )
             script.on(
                 "message", lambda message, data: print(json.dumps(message), file=sys.stderr, flush=True)
@@ -130,6 +135,14 @@ def run(config: Config, session_id: str, receipt_path: Path) -> None:
                 last_request[0] = time.monotonic()
                 op = request.get("op")
                 try:
+                    if op in {
+                        "neutral",
+                        "title_start",
+                        "movement_pulse",
+                    } and script.exports_sync.control_status().get("running"):
+                        raise ToolFailure(
+                            "control_busy", "Release the gameplay lease before legacy input recipes."
+                        )
                     if op == "heartbeat":
                         value = {"alive": True}
                     elif op == "snapshot":
@@ -148,6 +161,25 @@ def run(config: Config, session_id: str, receipt_path: Path) -> None:
                         value = script.exports_sync.trace_start(request["symbol"], request["duration_ms"])
                     elif op == "trace_stop":
                         value = script.exports_sync.trace_stop()
+                    elif op == "control_claim":
+                        verify_control_build(config, receipt)
+                        value = script.exports_sync.control_claim()
+                    elif op == "control_status":
+                        value = script.exports_sync.control_status()
+                    elif op == "control_release":
+                        value = script.exports_sync.control_release()
+                    elif (
+                        op == "control_action"
+                        and type(request.get("duration_ms")) is int
+                        and type(request.get("role")) is int
+                    ):
+                        value = script.exports_sync.control_action(
+                            request.get("action"), request["role"], request["duration_ms"]
+                        )
+                    elif op == "world_start" and type(request.get("duration_ms")) is int:
+                        value = script.exports_sync.world_start(request["duration_ms"])
+                    elif op == "world_stop":
+                        value = script.exports_sync.world_stop()
                     elif op == "neutral" and type(request.get("connected")) is bool:
                         value = script.exports_sync.neutral(request["connected"])
                     elif op == "title_start" and type(request.get("pressed")) is bool:

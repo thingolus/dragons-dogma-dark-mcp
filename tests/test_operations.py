@@ -420,7 +420,7 @@ def test_full_suite_holds_game_lease_and_core_does_not(development, monkeypatch)
     async def run():
         builds = module.Builds(development, Source(development), Artifacts(development))
 
-        async def inner(configuration, group, revision=None):
+        async def inner(configuration, group, revision=None, patch_id=None):
             if group == "all":
                 with pytest.raises(ToolFailure, match="owns"):
                     with game_lease(development.game):

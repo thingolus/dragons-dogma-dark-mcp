@@ -56,6 +56,7 @@ function traceStart(name,durationMs) {
         if(r.rows.length>=256){r.omitted++;return;}
         try {
           const row={time_ms:Date.now(),thread:Process.getCurrentThreadId(),kind:spec.kind};
+          if(r.world){worldSample(this.context.eax);return;}
           const value=this.context.esp.add(4).readFloat();
           if(!Number.isFinite(value))throw Error('nonfinite_argument');
           if(spec.kind==='stamina'){

@@ -3,8 +3,10 @@
 ## DDDA Local Coop
 
 The executable inventory, static inspection and runtime status/guard adapters
-are adapted from work in [thingolus/ddda-local-coop](https://github.com/thingolus/ddda-local-coop)
-at commit `61ed1bf830141b75981babe362cef42579eb98e3`.
+and gameplay control/world adapters are adapted from work in
+[thingolus/ddda-local-coop](https://github.com/thingolus/ddda-local-coop),
+originally at `61ed1bf830141b75981babe362cef42579eb98e3` and now reviewed against
+`e6a64c28d24bf4abda26887b0edeccc8bfd9b2a4`.
 The source inventory is in `reuse-manifest.json`.
 
 MIT License

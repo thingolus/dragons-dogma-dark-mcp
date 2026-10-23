@@ -100,7 +100,11 @@ class Regressions:
             raise ToolFailure("campaign_invalid", "Campaign identity differs.")
         return data
 
-    def create(self, checkpoint_id, revisions, repeats=2):
+    def create(self, checkpoint_id, revisions, repeats=2, recipe="observe_idle"):
+        from .scenarios import SCENARIOS
+
+        if recipe not in {"observe_idle", "neutral_input", *SCENARIOS}:
+            raise ToolFailure("scenario_unknown", "Select a reviewed scenario.")
         self.config.require_development()
         self.harness.load(checkpoint_id)
         if not 2 <= len(revisions) <= 16 or len(set(revisions)) != len(revisions) or repeats not in {2, 3}:
@@ -128,7 +132,7 @@ class Regressions:
             "builds": {},
             "state": "ready",
             "active": None,
-            "recipe": "observe_idle",
+            "recipe": recipe,
             "predicate": "stable advancing checkpoint world, offline guard and zero faults",
             "limitations": [
                 "Native menu loading is performed by the AI client through observed UI.",
@@ -138,6 +142,71 @@ class Regressions:
         }
         atomic_json(self.path(campaign_id), data)
         return data
+
+    def create_verification(self, checkpoint_id, patch_id, recipe="observe_idle", repeats=1):
+        from .scenarios import SCENARIOS
+
+        self.config.require_development()
+        self.harness.load(checkpoint_id)
+        patch = self.artifacts.get(patch_id)
+        if (
+            patch["kind"] != "source_patch"
+            or patch["provenance"]["source_commit"] != self.source.commit
+            or recipe not in {"observe_idle", *SCENARIOS}
+            or repeats not in {1, 2, 3}
+        ):
+            raise ToolFailure(
+                "verification_invalid", "Use a pinned patch, reviewed scenario and 1–3 repeats."
+            )
+        campaign_id = uuid.uuid4().hex
+        data = {
+            "id": campaign_id,
+            "mode": "patch_verification",
+            "checkpoint_id": checkpoint_id,
+            "checkpoint_sha256": digest(self.artifacts.path(checkpoint_id)),
+            "patch_id": patch_id,
+            "patch_sha256": digest(self.artifacts.path(patch_id)),
+            "revisions": [self.source.commit],
+            "repeats": repeats,
+            "trials": [],
+            "builds": {},
+            "state": "ready",
+            "active": None,
+            "recipe": recipe,
+            "limitations": [
+                "Baseline and candidate use the same save fixture; native menus still require observation.",
+                "Changed native provider implementations require renewed control review before movement scenarios.",
+                "Comparison proves only the selected scenario predicate, not general gameplay correctness.",
+            ],
+        }
+        atomic_json(self.path(campaign_id), data)
+        return data
+
+    def _decision(self, data):
+        if data.get("mode") != "patch_verification":
+            return choose_trial(data["revisions"], data["trials"], data["repeats"])
+        verdicts = {}
+        for variant in ("baseline", "candidate"):
+            trials = [t["outcome"] for t in data["trials"] if t.get("variant") == variant]
+            if any(t not in {"passed", "failed"} for t in trials) or len(set(trials)) > 1:
+                return {
+                    "state": "inconclusive",
+                    "reason": "inconsistent_or_inconclusive_trial",
+                    "variant": variant,
+                }
+            if len(trials) < data["repeats"]:
+                return {"state": "ready", "revision": data["revisions"][0], "variant": variant}
+            verdicts[variant] = trials[0]
+        return {
+            "state": "completed",
+            "verdicts": verdicts,
+            "comparison": "regressed"
+            if verdicts == {"baseline": "passed", "candidate": "failed"}
+            else "improved"
+            if verdicts == {"baseline": "failed", "candidate": "passed"}
+            else "unchanged",
+            "scope": "Selected predicate and checkpoint only; unchanged does not imply equivalent behavior.",
+        }
 
     def _shared_hash(self):
         path = self.config.game / "ddcoop.shared-lives.state"
@@ -233,8 +302,8 @@ class Regressions:
                         atomic_json(path, data)
                         failure = None
                         try:
-                            result = await self.harness.run(
-                                data["checkpoint_id"], "observe_idle", 2, 60, True
+                            result = await getattr(self, "scenarios", self.harness).run(
+                                data["checkpoint_id"], data.get("recipe", "observe_idle"), 2, 60, True
                             )
                             active.update(outcome=result["outcome"], evidence=result)
                         except BaseException as exc:
@@ -252,8 +321,25 @@ class Regressions:
                             active["error"] = "shared_life_changed"
                         data["trials"].append(active)
                         data["active"] = None
-                        decision = choose_trial(data["revisions"], data["trials"], data["repeats"])
+                        decision = self._decision(data)
                         data.update(state=decision["state"], decision=decision)
+                        if getattr(self, "diagnosis", None) and (active.get("evidence") or {}).get(
+                            "artifact_id"
+                        ):
+                            active["diagnosis"] = self.diagnosis.analyze(active["evidence"]["artifact_id"])
+                        if data["state"] == "completed" and getattr(self, "memory", None):
+                            ids = [
+                                t["evidence"]["artifact_id"]
+                                for t in data["trials"]
+                                if t.get("evidence", {}).get("artifact_id")
+                            ][:16]
+                            data["investigation_note"] = self.memory.record(
+                                "Completed " + data.get("mode", "regression") + " campaign",
+                                str(decision),
+                                "finding",
+                                "supported",
+                                ids,
+                            )
                         atomic_json(path, data)
                         if isinstance(failure, asyncio.CancelledError):
                             raise failure
@@ -263,28 +349,41 @@ class Regressions:
                             "campaign_state",
                             "Campaign is not ready; recover an interrupted trial with abort.",
                         )
-                    decision = choose_trial(data["revisions"], data["trials"], data["repeats"])
+                    decision = self._decision(data)
                     if decision["state"] != "ready":
                         data.update(state=decision["state"], decision=decision)
                         atomic_json(path, data)
                         return data
                     revision = decision["revision"]
+                    variant = decision.get("variant")
+                    build_key = variant or revision
+                    patch_id = data.get("patch_id") if variant == "candidate" else None
+                    if (
+                        data.get("patch_id")
+                        and digest(self.artifacts.path(data["patch_id"])) != data["patch_sha256"]
+                    ):
+                        raise ToolFailure("evidence_changed", "Patch changed after campaign registration.")
                     with game_lease(self.config.game):
                         require_closed()
                         original = installed(self.config)
                     data["state"] = "building"
                     atomic_json(path, data)
                     try:
-                        build = data["builds"].get(revision)
+                        build = data["builds"].get(build_key)
                         if build is None:
-                            build = await self.builds.build("Debug", "all", revision)
-                            data["builds"][revision] = build
+                            build = (
+                                await self.builds.build("Debug", "all", revision, patch_id)
+                                if patch_id
+                                else await self.builds.build("Debug", "all", revision)
+                            )
+                            data["builds"][build_key] = build
                             atomic_json(path, data)
                         doc = self.artifacts.get(build["artifact_id"])
                         if (
                             digest(self.artifacts.path(build["artifact_id"])) != build["sha256"]
                             or doc["kind"] != "build"
                             or doc["provenance"]["source_commit"] != revision
+                            or doc["provenance"].get("patch_id") != patch_id
                             or not doc["data"]["summary"]["passed"]
                         ):
                             raise ToolFailure(
@@ -325,6 +424,8 @@ class Regressions:
                         self.config.settings.deployment_candidates[candidate] = str(folder)
                         active = {
                             "revision": revision,
+                            "variant": variant,
+                            "patch_id": patch_id,
                             "build": build,
                             "candidate": candidate,
                             "shared_life_sha256": self._shared_hash(),
