@@ -102,6 +102,17 @@ class Application:
         self.investigations = Investigations(
             config, self.source, self.knowledge, self.binary, self.builds, self.artifacts
         )
+        from .assets import Assets
+        from .behavior import Behaviors
+        from .mods import Mods
+        from .sdk import SDK
+        from .suites import Suites
+
+        self.assets = Assets(config, self.artifacts)
+        self.mods = Mods(config, self.artifacts, self.assets)
+        self.sdk = SDK(config, self.source, self.artifacts, self.builds)
+        self.behaviors = Behaviors(self)
+        self.suites = Suites(self)
 
     def project_status(self) -> dict:
         verified = self.source.verify()
@@ -153,8 +164,14 @@ class Application:
                 "reviewed_function_tracing",
                 "persistent_investigation_memory",
                 "repeated_regression_campaigns",
+                "behavior_differentials",
+                "versioned_cpp_sdk",
+                "standalone_offline_observation",
+                "private_arc_gmd_editing",
+                "fixture_profile_matrices",
+                "journaled_mod_profiles",
             ],
-            "live_requirements": "development profile, Frida extra, exact game, manifest-owned research runtime, no existing DDDA process",
+            "live_requirements": "development profile, Frida extra, exact game, no existing DDDA process; co-op requires a manifest-owned runtime, standalone a verified bridge and disabled competing loaders",
             "limits": self.config.settings.limits.model_dump(),
             "native_acceptance": "Not inferred from static or simulated checks.",
         }
@@ -313,12 +330,14 @@ def create_server(config: Config, config_path: Path | None = None) -> tuple[MCPS
         return await app.invoke("session_status", app.sessions.status)
 
     @mcp.tool(annotations=Write)
-    async def start_session() -> Result:
-        """Start a manifest-owned offline research game as a job. Refuses any already running DDDA."""
+    async def start_session(
+        backend: Literal["coop", "standalone"] = "coop", bridge_id: str | None = None
+    ) -> Result:
+        """Start an owned offline game; standalone requires a passed research bridge build and disabled competing proxy loaders."""
 
         async def submit():
             config.require_development()
-            return app.jobs.submit("start_session", app.sessions.start)
+            return app.jobs.submit("start_session", lambda: app.sessions.start(backend, bridge_id))
 
         return await app.invoke("start_session", submit)
 
@@ -812,4 +831,7 @@ def create_server(config: Config, config_path: Path | None = None) -> tuple[MCPS
         result = await app.invoke("artifact_summary", app.artifacts.summary, run_id)
         return result.content[0].text
 
+    from .workbench import register_tools
+
+    register_tools(mcp, app)
     return mcp, app

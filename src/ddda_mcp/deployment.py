@@ -126,6 +126,9 @@ class Deployment:
         self.config.require_development()
         with game_lease(self.config.game):
             require_closed()
+            from .mods import require_profile_clear
+
+            require_profile_clear(self.config)
             info = Binary(self.config).inventory()
             if info["sha256"] != GAME_SHA256:
                 raise ToolFailure("unsupported_build", "Deployment requires the supported executable.")
@@ -198,6 +201,9 @@ class Deployment:
         self.config.require_development()
         with game_lease(self.config.game):
             require_closed()
+            from .mods import require_profile_clear
+
+            require_profile_clear(self.config)
             receipt = self._read(receipt_id)
             if receipt["state"] == "applied":
                 installed(self.config)
@@ -263,6 +269,9 @@ class Deployment:
         self.config.require_development()
         with game_lease(self.config.game):
             require_closed()
+            from .mods import require_profile_clear
+
+            require_profile_clear(self.config)
             receipt = self._read(receipt_id)
             if receipt["state"] == "rolled_back":
                 return {"receipt_id": receipt_id, "state": "rolled_back", "already_rolled_back": True}

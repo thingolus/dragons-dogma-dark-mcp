@@ -73,10 +73,10 @@ function worldLatest(){
     quests:{available:false,reason:'No reviewed quest-state layout; checkpoint labels are not quest observations.'},
     identity_scope:'Opaque IDs within this capture and observed lifetime; address reuse between callbacks cannot be excluded.'};
 }
-function worldStart(durationMs){
-  const started=traceStart('native_stamina_apply',durationMs),s=snapshot();
+async function worldStart(durationMs){
+  const started=await traceStart('native_stamina_apply',durationMs),s=snapshot();
   worldRun={stage:s.stage,generation:s.generation,times:[0,0],party:[null,null],enemies:null,ids:new Map(),samples:0};
   traceRun.world=true;return started;
 }
-function worldStop(){const cleanup=traceStop();return {world:worldLatest(),cleanup};}
+async function worldStop(){const cleanup=await traceStop();return {world:worldLatest(),cleanup};}
 Object.assign(rpc.exports,{worldStart,worldStop});

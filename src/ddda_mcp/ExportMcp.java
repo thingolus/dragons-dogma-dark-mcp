@@ -4,6 +4,11 @@ import ghidra.app.script.GhidraScript;
 import ghidra.app.decompiler.DecompInterface;
 import ghidra.app.decompiler.DecompileResults;
 import ghidra.program.model.listing.Function;
+import ghidra.program.model.symbol.Reference;
+import ghidra.program.model.symbol.ReferenceIterator;
+import ghidra.program.model.address.AddressIterator;
+import java.util.ArrayList;
+import java.util.List;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -33,9 +38,34 @@ public class ExportMcp extends GhidraScript {
             String code = result.getDecompiledFunction().getC();
             boolean truncated = code.length() > 200000;
             if (truncated) code = code.substring(0,200000);
+            List<String> references = new ArrayList<>();
+            ReferenceIterator incoming = currentProgram.getReferenceManager().getReferencesTo(function.getEntryPoint());
+            boolean refsTruncated = false;
+            while (incoming.hasNext()) {
+                Reference ref = incoming.next();
+                if (references.size() >= 128) { refsTruncated = true; break; }
+                Function owner = getFunctionContaining(ref.getFromAddress());
+                references.add("{\"direction\":\"incoming\",\"from\":" + quote(ref.getFromAddress().toString())
+                    + ",\"to\":" + quote(ref.getToAddress().toString()) + ",\"type\":" + quote(ref.getReferenceType().toString())
+                    + ",\"function\":" + (owner == null ? "null" : quote(owner.getName())) + "}");
+            }
+            AddressIterator sites = currentProgram.getReferenceManager().getReferenceSourceIterator(function.getBody(), true);
+            int examined = 0;
+            while (sites.hasNext()) {
+                if (++examined > 4096 || references.size() >= 256) { refsTruncated = true; break; }
+                for (Reference ref : currentProgram.getReferenceManager().getReferencesFrom(sites.next())) {
+                    if (!ref.getReferenceType().isCall()) continue;
+                    Function target = getFunctionContaining(ref.getToAddress());
+                    references.add("{\"direction\":\"outgoing_call\",\"from\":" + quote(ref.getFromAddress().toString())
+                        + ",\"to\":" + quote(ref.getToAddress().toString()) + ",\"type\":" + quote(ref.getReferenceType().toString())
+                        + ",\"function\":" + (target == null ? "null" : quote(target.getName())) + "}");
+                    if (references.size() >= 256) { refsTruncated = true; break; }
+                }
+            }
             String json = "{\"success\":true,\"game_sha256\":" + quote(hash.toLowerCase())
                 + ",\"function\":" + quote(function.getName()) + ",\"address\":" + quote(function.getEntryPoint().toString())
-                + ",\"truncated\":" + truncated + ",\"code\":" + quote(code) + "}";
+                + ",\"truncated\":" + truncated + ",\"code\":" + quote(code)
+                + ",\"references_truncated\":" + refsTruncated + ",\"references\":[" + String.join(",", references) + "]}";
             Files.writeString(Path.of(args[0]), json, StandardCharsets.UTF_8);
         } finally { decomp.dispose(); }
     }

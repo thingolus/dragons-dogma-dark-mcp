@@ -2,12 +2,19 @@
 
 A dedicated Model Context Protocol project for faster AI-assisted development of **Dragon's Dogma: Dark Arisen (DDDA / Dragon's Dogma 1)**.
 
-Created by **Thingolus**. Version **0.8.0** implements 57 typed MCP tools and four resource routes over stdio. It reuses the co-op project's pinned research, signatures, runtime ABI, build targets, and deployment conventions.
+Created by **Thingolus**. Version **0.9.0** implements 77 typed MCP tools and four resource routes over stdio. It reuses the co-op project's pinned research, signatures, runtime ABI, build targets, and deployment conventions.
 
 The gameplay development tools now include expiring controller ownership, callback-only world inspection, reusable scenarios, failure diagnosis and isolated patch verification. Native checks have verified assignment and movement for both players while a physical controller remained connected, input release, party resources/inventories and deployment/save restoration. Combat damage, learned dodge, enemy presence and quest-state coverage remain separate gates. See [gameplay workflows](docs/GAMEPLAY_DEVELOPMENT.md) and [validation](docs/VALIDATION.md).
 
+Version 0.9 adds behavior comparisons with analyzed Ghidra references, a reusable C++ SDK and standalone observer, private ARC/GMD editing, fixture/profile gameplay matrices, and journaled mod profiles with conflict detection and merging. See [general modding workflows](docs/MODDING_WORKBENCH.md) for supported formats, examples and recovery.
+
 | Workflow | Tools |
 | --- | --- |
+| Behavior research | `compare_behavior`, `capture_behavior_experiment` |
+| Reusable SDK | `ddda_sdk_catalog`, `generate_ddda_sdk`, `build_research_bridge`, `inspect_standalone_world` |
+| Asset editing | `list_asset_archives`, `open_asset_archive`, `inspect_asset`, `edit_asset_text`, `repack_asset_archive` |
+| Mod profiles | `import_mod`, `register_mod`, `compose_mod_profile`, `mod_profile` |
+| Fixture suites | `register_gameplay_fixture`, `list_gameplay_fixtures`, `create_gameplay_suite`, `advance_gameplay_suite`, `gameplay_suite_status` |
 | Gameplay development | `gameplay_catalog`, `control_gameplay`, `gameplay_action`, `inspect_world`, `diagnose_scenario`, `create_source_patch`, `create_patch_verification` |
 | Project and knowledge | `project_status`, `verify_upstream`, `search_knowledge`, `lookup_symbol`, `read_source` |
 | Executable analysis | `inspect_build`, `inspect_binary`, `decompile_symbol`, `investigate_symbol` |
@@ -63,7 +70,7 @@ uv run python scripts/smoke.py
 
 The smoke script uses the real stdio transport and local read-only inputs. Unit tests use temporary fixtures. Native acceptance must be performed separately when no other tool or player owns the game.
 
-Read [operations](docs/OPERATIONS.md), [architecture](docs/ARCHITECTURE.md), and [validation](docs/VALIDATION.md). The original [implementation plan](IMPLEMENTATION_PLAN.md) records delivery gates; [reuse-manifest.json](reuse-manifest.json) pins the 42 inventoried upstream files. Private traces, saves, binaries, credentials, and decompiler databases stay outside version control.
+Read [operations](docs/OPERATIONS.md), [architecture](docs/ARCHITECTURE.md), and [validation](docs/VALIDATION.md). The original [implementation plan](IMPLEMENTATION_PLAN.md) records delivery gates; [reuse-manifest.json](reuse-manifest.json) pins the 50 inventoried upstream files. Private traces, saves, binaries, credentials, and decompiler databases stay outside version control.
 
 Optional Ghidra setup uses the same hash-pinned distributions as the co-op source:
 

@@ -49,8 +49,10 @@ class Sessions:
         if self.operation_lock.locked():
             raise ToolFailure("session_busy", "Another live operation is in progress.")
 
-    async def start(self) -> dict:
+    async def start(self, backend="coop", bridge_id=None) -> dict:
         self._admit()
+        if backend not in {"coop", "standalone"} or (backend == "standalone" and not bridge_id):
+            raise ToolFailure("invalid_parameters", "Standalone launch requires a reviewed bridge build ID.")
         async with self.operation_lock:
             if self.process is not None and self.process.returncode is None:
                 raise ToolFailure("session_busy", "This server already owns a session.")
@@ -68,7 +70,11 @@ class Sessions:
                 str(self.config.root),
                 "--session-id",
                 session_id,
+                "--backend",
+                backend,
             ]
+            if bridge_id:
+                args.extend(["--bridge-id", bridge_id])
             if self.config_path is not None:
                 args.extend(["--config", str(self.config_path.resolve())])
             self.error_stream = (folder / f"{session_id}.log").open("wb")
@@ -137,6 +143,10 @@ class Sessions:
                 ) from exc
 
     async def _snapshot(self) -> dict:
+        if (self.receipt or {}).get("backend") == "standalone":
+            raise ToolFailure(
+                "backend_capability", "Use inspect_standalone_world for the standalone backend."
+            )
         result = await self._request("snapshot")
         if result.get("size") != 132 or result.get("version") != 2:
             self.unusable = True

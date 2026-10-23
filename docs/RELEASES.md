@@ -1,6 +1,8 @@
 # Install and release Dragons Dogma Dark MCP
 
-Created by **Thingolus**, MIT licensed. Version 0.8.0. Retain the copyright and license notices when modifying or redistributing this software.
+Created by **Thingolus**, MIT licensed. Version 0.9.0. Retain the copyright and license notices when modifying or redistributing this software.
+
+Version 0.9 adds twenty tools for differential behavior research with Ghidra references, a versioned C++ SDK and standalone offline observer, ARC/GMD editing, reusable gameplay fixture matrices, and mod profiles with merging, rollback and private packaging. See [workflows](MODDING_WORKBENCH.md) and [native validation scope](VALIDATION.md). Existing trace/world observers now drain callbacks before detaching and verify cleanup asynchronously.
 
 ## Install a versioned package
 

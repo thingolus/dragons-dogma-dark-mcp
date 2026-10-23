@@ -182,10 +182,17 @@ class Controls:
             try:
                 result = await self.sessions._request("world_stop")
                 if not result["cleanup"].get("sealed"):
+                    partial = self.artifacts.put(
+                        "world_capture",
+                        result,
+                        {**provenance, "evidence_class": "native_callback_observation"},
+                    )
                     await self.sessions._stop()
-                    raise ToolFailure(
+                    error = ToolFailure(
                         "hook_cleanup_failed", "World observer did not seal; owned game stopped."
                     )
+                    error.details = partial
+                    raise error
             except BaseException:
                 await self.sessions._stop()
                 raise

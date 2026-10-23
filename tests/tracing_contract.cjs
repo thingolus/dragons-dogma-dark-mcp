@@ -1,3 +1,4 @@
+(async()=>{
 // Exercise shipped observer callbacks with synthetic native memory, never a game.
 const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict');
 const regions=[];
@@ -30,28 +31,35 @@ const context={REVIEWED_TRACES:specs,Uint8Array,Date,ptr:x=>new P(Number(x)),sna
  Process:{mainModule:{base:new P(0x400000)},getCurrentThreadId:()=>77,
  findRangeByAddress:p=>{try{const r=p.region();return {base:new P(r.address),size:r.buffer.length,protection:'rw-'};}catch{return null;}}},
  Interceptor:{attach:(address,callbacks)=>{attachments++;listener=callbacks;return {detach:()=>{detaches++;}};},flush:()=>{}},
- setTimeout:()=>{timers++;return 1;},clearTimeout:()=>{}}
+ setTimeout:(f,n)=>{timers++;return setTimeout(f,n);},clearTimeout:clearTimeout}
 vm.runInNewContext(fs.readFileSync(process.argv[2],'utf8'),context);
 assert.equal(attachments,0);assert.equal(timers,0);
-assert.throws(()=>context.traceStart('arbitrary_native_function',500),/invalid_trace/);
-healthy.native_offline=0;assert.throws(()=>context.traceStart('native_stamina_apply',500),/admission/);healthy.native_offline=1;
+await assert.rejects(()=>context.traceStart('arbitrary_native_function',500),/invalid_trace/);
+healthy.native_offline=0;await assert.rejects(()=>context.traceStart('native_stamina_apply',500),/admission/);healthy.native_offline=1;
 const prefix=new P(0xb81e30),original=Buffer.from(prefix.readByteArray(16));prefix.u32(0,0xe9);
-assert.throws(()=>context.traceStart('native_stamina_apply',500),/signature/);prefix.region().buffer.set(original);
-context.traceStart('native_stamina_apply',30000);
-assert.throws(()=>context.traceStart('native_stamina_apply',500),/trace_busy/);
+await assert.rejects(()=>context.traceStart('native_stamina_apply',500),/signature/);prefix.region().buffer.set(original);
+await context.traceStart('native_stamina_apply',30000);
+await assert.rejects(()=>context.traceStart('native_stamina_apply',500),/trace_busy/);
 for(let i=0;i<260;i++){const invocation={context:{eax:actor,esp:stack}};listener.onEnter.call(invocation);listener.onLeave.call(invocation);}
-let result=context.traceStop();assert.equal(result.sealed,true);assert.equal(result.rows.length,256);assert.equal(result.omitted,4);
+let result=await context.traceStop();assert.equal(result.sealed,true);assert.equal(result.rows.length,256);assert.equal(result.omitted,4);
 assert.equal(result.rows[0].stamina_before,99.5);assert.equal(result.rows[0].requested_delta,-.5);
-assert.equal(result.rows[0].role,0);assert.equal(detaches,1);context.traceStop();assert.equal(detaches,1);
+assert.equal(result.rows[0].role,0);assert.equal(detaches,1);await context.traceStop();assert.equal(detaches,1);
 assert(!JSON.stringify(result).includes(String(actor.address)));assert(!JSON.stringify(result).includes('pointer'));
 const enemy=allocate(0x40000000,0x2000),life=allocate(0x41000000,0x200),table=allocate(0x42000000,4);
 enemy.u32(0,0x15a4610);enemy.u32(0x1d0c,1);enemy.u32(0x1d18,table.address);table.u32(0,life.address);
 life.u32(0x1b4,enemy.address);life.f32(8,100);life.f32(12,200);stack.f32(4,10);
-context.traceStart('goblin_health_subtract',30000);
+await context.traceStart('goblin_health_subtract',30000);
 let invocation={context:{eax:life,esp:stack}};listener.onEnter.call(invocation);life.f32(8,90);listener.onLeave.call(invocation);
 invocation={context:{eax:life,esp:stack}};listener.onEnter.call(invocation);table.u32(0,0);listener.onLeave.call(invocation);
-result=context.traceStop();assert(result.sealed);assert.equal(result.rows[0].applied_damage,10);assert.equal(result.rows[1].lifetime_changed,true);
+result=await context.traceStop();assert(result.sealed);assert.equal(result.rows[0].applied_damage,10);assert.equal(result.rows[1].lifetime_changed,true);
 assert.equal(result.active_callbacks,0);assert.equal(detaches,2);
+// Shutdown must drain a pending onLeave before removing its listener.
+await context.traceStart('native_stamina_apply',1000);
+invocation={context:{eax:actor,esp:stack}};listener.onEnter.call(invocation);
+const beforeDrain=detaches,draining=context.traceStop();
+assert.equal(detaches,beforeDrain);
+listener.onLeave.call(invocation);
+assert((await draining).sealed);assert.equal(detaches,beforeDrain+1);
 console.log('tracing contract passed');
 
 // The shipped world inspector reads native values only when a reviewed callback fires.
@@ -60,10 +68,33 @@ vm.runInNewContext(fs.readFileSync(process.argv[3],'utf8'),context);
 allocate(0x18fa4d4,4);allocate(0x18fa4d8,4);
 actor.u32(0x1d0c,1);actor.u32(0x1d18,table.address);table.u32(0,life.address);life.u32(0x1b4,actor.address);
 life.f32(8,90);life.f32(12,200);gs.f32(0xa76d0+0x2a4,180);
-context.worldStart(1000);assert.equal(context.worldLatest().samples,0);
+await context.worldStart(1000);assert.equal(context.worldLatest().samples,0);
 invocation={context:{eax:actor,esp:stack}};listener.onEnter.call(invocation);listener.onLeave.call(invocation);
-result=context.worldStop();assert(result.cleanup.sealed);assert.equal(result.world.samples,1);
+result=await context.worldStop();assert(result.cleanup.sealed);assert.equal(result.world.samples,1);
 assert.equal(result.world.party[0].resources.hp,90);assert.equal(result.world.party[0].resources.hp_white,180);
 assert.equal(result.world.quests.available,false);assert.equal(result.world.party[0].inventory.available,false);
 assert.equal(result.world.party[1],null);assert(!JSON.stringify(result).includes('0x30000000'));
 console.log('world callback contract passed');
+
+// Standalone observer has no co-op calls and does not install hooks on load.
+P.prototype.toString=function(){return '0x'+this.address.toString(16);};
+context.Process.arch='ia32';context.Process.pointerSize=4;context.Process.enumerateModules=()=>[];
+context.Module={load:()=>({getExportByName:name=>name})};
+context.NativeFunction=function(name){return ()=>name==='OfflineState'?2:name==='ResearchErrors'?0:1;};
+const previousAttachments=attachments;
+context.setTimeout=setTimeout;context.clearTimeout=clearTimeout;
+vm.runInNewContext(fs.readFileSync(process.argv[4],'utf8'),context);
+assert.equal(attachments,previousAttachments);
+assert.equal(context.rpc.exports.researchBootstrap('reviewed-bridge.dll').input_control,false);
+assert.equal(context.rpc.exports.controlClaim,undefined);
+await context.researchStart(1000);
+invocation={context:{eax:actor,esp:stack}};listener.onEnter.call(invocation);listener.onLeave.call(invocation);
+result=await context.researchStop();assert(result.cleanup.sealed);assert.equal(result.world.samples,1);
+assert.equal(result.world.party[0].resources.hp,90);
+assert(!JSON.stringify(result).includes('0x30000000'));
+await context.researchStart(1000);prefix.u32(0,0xe9);
+assert.equal((await context.researchStop()).cleanup.sealed,false);prefix.region().buffer.set(original);
+await assert.rejects(()=>context.researchStart(10001),/invalid_capture/);
+console.log('standalone callback contract passed');
+
+})().catch(e=>{console.error(e);process.exitCode=1;});

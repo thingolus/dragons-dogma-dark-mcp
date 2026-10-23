@@ -2,7 +2,7 @@
   "schema_version": 1,
   "project": "Dragons Dogma Dark MCP",
   "created_date": "2026-10-22",
-  "status": "v0.8 gameplay control, world snapshots, scenario predicates, diagnosis and isolated patch verification; exact native scope in docs/VALIDATION.md",
+  "status": "v0.9 general modding workflows; native acceptance and remaining limits in docs/VALIDATION.md",
   "validation_document": "docs/VALIDATION.md",
   "implementation_adaptations": {
     "scripts/inspect_game.py and static probe conventions": "src/ddda_mcp/binary.py",
@@ -16,7 +16,8 @@
     "observe_sprint_stamina.js and observe_fighter_damage.js": "src/ddda_mcp/trace_catalog.py and tracing.js (bounded observation only)",
     "existing build/deploy/save primitives": "src/ddda_mcp/harness.py and regression.py (private receipts and cleanup)",
     "session.cpp developer assignment and strider_dodge_trial.js": "control.js and control.py (bounded fixed actions, expiring provider ownership)",
-    "party_inventory_snapshot.js, grab_registry.js, observe_mage_healing.js": "world.js (callback-only, copied values, bounded opaque identities)"
+    "party_inventory_snapshot.js, grab_registry.js, observe_mage_healing.js": "world.js (callback-only, copied values, bounded opaque identities)",
+    "native_offline.cpp and network_guard.cpp": "sdk.py generates a minimal offline bridge from immutable sources; standalone.js observes callbacks without co-op runtime"
   },
   "upstream": {
     "repository": "https://github.com/thingolus/ddda-local-coop",
@@ -35,7 +36,7 @@
     "named_signature_records_at_pinned_commit": 225,
     "input_thunks_at_pinned_commit": 3
   },
-  "source_file_count": 42,
+  "source_file_count": 50,
   "components": [
     {
       "component": "executable_and_static_analysis",
@@ -275,6 +276,24 @@
         {
           "path": "research/strider_dodge_trial.js",
           "git_blob_sha1": "4fcaafe53bed165998a6dbbc88774f01ffad57aa"
+        }
+      ]
+    },
+    {
+      "component": "standalone_research_bridge",
+      "strategy": "Compile exact offline guard sources into an isolated minimal bridge; no co-op gameplay implementation",
+      "files": [
+        {
+          "path": "src/network_guard.cpp",
+          "git_blob_sha1": "c7e362c5361ed6e8a7717ae78cf94c1b36597ffb"
+        },
+        {
+          "path": "src/native_offline.cpp",
+          "git_blob_sha1": "d8afd4e12cec9a00c68b74b1ecf98c98ba287cec"
+        },
+        {
+          "path": "include/coop/native_offline.hpp",
+          "git_blob_sha1": "319f477b659fb4734073350e06a442cbcc6aade0"
         }
       ]
     }

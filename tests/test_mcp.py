@@ -15,7 +15,11 @@ def test_real_sdk_tools_resources_and_errors(config):
         async with Client(server) as client:
             tools = await client.list_tools()
             names = {tool.name for tool in tools.tools}
-            assert len(names) == 57
+            assert len(names) == 77
+            sdk = await client.call_tool("ddda_sdk_catalog", {})
+            assert "standalone" in sdk.structured_content["data"]["backends"]
+            refused_sdk = await client.call_tool("generate_ddda_sdk", {})
+            assert refused_sdk.structured_content["error"]["code"] == "profile_disabled"
             gameplay = await client.call_tool("gameplay_catalog", {})
             assert "movement_pair" in gameplay.structured_content["data"]["scenarios"]
             assert "dodge" in gameplay.structured_content["data"]["actions"]
@@ -163,5 +167,88 @@ def test_expansion_stdio_memory_restart_checkpoint_and_guards(development):
                 {"title": "stale", "body": "conflict", "note_id": note["note_id"], "expected_revision": 0},
             )
             assert stale.structured_content["error"]["code"] == "revision_conflict"
+
+    asyncio.run(run())
+
+
+def test_workbench_stdio_asset_profile_and_fixture_workflow(development):
+    from test_expansion import fixture_checkpoint
+    from test_workbench import arc, gmd
+
+    _, _, trace, backup = fixture_checkpoint(development)
+    target = development.game / "nativePC/fixture.arc"
+    target.parent.mkdir()
+    original = arc([gmd(["Apple", "Sword"])])
+    target.write_bytes(original)
+    atomic_json(development.root / "config/local.json", development.settings.model_dump())
+    parameters = StdioServerParameters(
+        command=sys.executable, args=["-m", "ddda_mcp", "--project", str(development.root)]
+    )
+
+    async def run():
+        async with Client(parameters, read_timeout_seconds=20) as client:
+
+            async def call(name, **args):
+                result = await client.call_tool(name, args)
+                assert not result.is_error, result.structured_content
+                return result.structured_content["data"]
+
+            assert (await call("list_asset_archives"))["total"] == 1
+            archive = await call("open_asset_archive", relative_path="nativePC/fixture.arc")
+            entry = await call("inspect_asset", artifact_id=archive["artifact_id"], operation="extract")
+            text = await call("inspect_asset", artifact_id=entry["artifact_id"], operation="text")
+            assert "Apple" in json.dumps(text)
+            edited = await call(
+                "edit_asset_text",
+                entry_id=entry["artifact_id"],
+                edits=[{"index": 0, "expected": "Apple", "text": "Golden Apple"}],
+            )
+            from ddda_mcp.artifacts import Artifacts
+
+            original_sha = Artifacts(development).get(entry["artifact_id"])["data"]["sha256"]
+            packed = await call(
+                "repack_asset_archive",
+                archive_id=archive["artifact_id"],
+                replacements=[
+                    {"index": 0, "artifact_id": edited["artifact_id"], "expected_sha256": original_sha}
+                ],
+            )
+            mod = await call(
+                "register_mod",
+                label="Synthetic text mod",
+                files=[{"target": "nativePC/fixture.arc", "asset_id": packed["artifact_id"]}],
+            )
+            profile = await call(
+                "compose_mod_profile", label="Synthetic profile", mod_ids=[mod["artifact_id"]]
+            )
+            assert profile["summary"]["compatible"]
+            package = await call("mod_profile", operation="package", profile_id=profile["artifact_id"])
+            assert package["private"]
+            checkpoint = await call(
+                "create_gameplay_checkpoint",
+                backup_id=backup,
+                trace_id=trace["artifact_id"],
+                label="Synthetic suite fixture",
+            )
+            fixture = await call(
+                "register_gameplay_fixture", checkpoint_id=checkpoint["artifact_id"], label="Synthetic inn"
+            )
+            assert (await call("list_gameplay_fixtures"))["total"] == 1
+            suite = await call(
+                "create_gameplay_suite",
+                label="Synthetic matrix",
+                cases=[{"fixture_id": fixture["artifact_id"], "recipe": "movement_pair"}],
+                profiles=[None, profile["artifact_id"]],
+            )
+            assert len((await call("gameplay_suite_status", suite_id=suite["id"]))["queue"]) == 2
+            invalid = await client.call_tool(
+                "edit_asset_text",
+                {
+                    "entry_id": entry["artifact_id"],
+                    "edits": [{"index": 0, "expected": "Apple", "text": "X", "raw_write": True}],
+                },
+            )
+            assert invalid.is_error
+        assert target.read_bytes() == original
 
     asyncio.run(run())

@@ -1,6 +1,6 @@
 # Dragons Dogma Dark MCP implementation instructions
 
-Read `README.md`, `docs/VALIDATION.md`, `IMPLEMENTATION_PLAN.md`, and `reuse-manifest.json` before changes. This checkout contains the version 0.8 MCP implementation; the validation document separates verified behavior from remaining native acceptance.
+Read `README.md`, `docs/VALIDATION.md`, `IMPLEMENTATION_PLAN.md`, and `reuse-manifest.json` before changes. This checkout contains the version 0.9 MCP implementation; the validation document separates verified behavior from remaining native acceptance.
 
 - Keep this project independent from the sibling co-op repository. Do not stage, commit, reset, or overwrite that repository's active changes unless the user explicitly requests a cross-repository checkpoint. The 22 October 2026 sync request authorizes the committed 1.8 source checkpoint and reviewed MCP baseline refresh.
 - Use the pinned upstream commit as the reproducible starting point. Record any newer commit explicitly before adopting it. Never describe uncommitted upstream work as part of the pinned baseline.
@@ -24,3 +24,5 @@ Death diagnostic rows are bounded refusal evidence, not proof of Game Over causa
 New copied-value diagnostics should use the reviewed schema/decoder registry and replay fixtures described in `docs/FUTURE_WORKFLOWS.md`. Preserve separate timeline clock/session/evidence domains, source hashes and original captures. Supplied offline data cannot become native evidence. Feature investigations are lexical candidates with immutable source references, not verified call graphs or test coverage.
 
 Gameplay control requires a locally hash-verified build of the reviewed developer provider. Physical-mask presence alone is not a conflict on that provider: the native developer route replaces raw samples. Do not apply this exception to unknown binaries. Keep action durations, lease expiry, callback guards and release verification. World actor reads belong only inside the signature-checked native callback; unavailable quest layouts remain unavailable. Source overlays apply only in isolated archives; preserve all campaign rollback journals.
+
+General modding profiles own a game-directory recovery marker and a transaction-specific owner ID. Restore profiles before deployment rollback. Suite trials reload a checkpoint and restore saves/files after every trial; failed or missing outcome evidence remains inconclusive. Standalone is an offline observer with no co-op input provider. ARC v7 and unlabelled GMD v0x10201 are the only structured asset formats currently supported; never infer unsupported parameter or quest layouts. Keep private asset packages out of release archives.

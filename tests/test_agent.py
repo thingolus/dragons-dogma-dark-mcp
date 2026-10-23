@@ -38,6 +38,7 @@ def test_actual_trace_callbacks_and_cleanup():
             str(Path(__file__).with_name("tracing_contract.cjs")),
             str(script),
             str(script.with_name("world.js")),
+            str(script.with_name("standalone.js")),
         ],
         capture_output=True,
         text=True,

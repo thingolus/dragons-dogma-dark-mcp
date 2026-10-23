@@ -33,16 +33,23 @@ function traceLife(life) {
   if(!life.add(0x1b4).readPointer().equals(actor)||actor.add(0x1d0c).readU32()!==count||!actor.add(0x1d18).readPointer().equals(table)||!table.add(index*4).readPointer().equals(life))return null;
   return {actor,table,count,index,current,maximum,part:life.add(4).readU32()};
 }
-function traceStop() {
+async function traceStop() {
   const r=traceRun;if(!r)return {running:false,sealed:true,rows:[]};
-  if(r.running){r.running=false;clearTimeout(r.timer);r.hook.detach();Interceptor.flush();}
+  if(r.stopping)return r.stopping;
+  r.stopping=(async()=>{
+  r.running=false;clearTimeout(r.timer);
+  const deadline=Date.now()+250;
+  while(r.active&&Date.now()<deadline)await new Promise(resolve=>setTimeout(resolve,5));
+  if(!r.detached){r.hook.detach();r.detached=true;Interceptor.flush();}
+  await new Promise(resolve=>setTimeout(resolve,5));
   const restored=traceBytes(r.address,r.spec.bytes.length/2)===r.spec.bytes;
   return {running:false,sealed:restored&&r.active===0,prefix_restored:restored,active_callbacks:r.active,
     symbol:r.name,rows:r.rows,omitted:r.omitted,errors:r.errors,started_ms:r.started,stopped_ms:Date.now()};
+  })();return r.stopping;
 }
-function traceStart(name,durationMs) {
+async function traceStart(name,durationMs) {
   if(!Object.hasOwn(REVIEWED_TRACES,name)||!Number.isInteger(durationMs)||durationMs<100||durationMs>30000)throw Error('invalid_trace');
-  if(traceRun && (traceRun.running || traceRun.active || !traceStop().sealed))throw Error('trace_busy');
+  if(traceRun && (traceRun.running || traceRun.active || !(await traceStop()).sealed))throw Error('trace_busy');
   const s=snapshot(), spec=REVIEWED_TRACES[name], address=Process.mainModule.base.add(spec.rva);
   if(s.runtime!==2||s.guard_transport!==2||s.transport!==2||s.native_offline!==1||s.native_errors||s.faults||s.developer_input!==1||!s.stage||!s.generation)throw Error('trace_admission_failed');
   if(traceBytes(address,spec.bytes.length/2)!==spec.bytes)throw Error('trace_signature_changed_or_already_hooked');
@@ -83,7 +90,7 @@ function traceStart(name,durationMs) {
         finally {r.active--;}
       }
     });
-    r.timer=setTimeout(()=>{try{traceStop();}catch(_){r.errors.push('deadline_cleanup_failed');}},durationMs);
+    r.timer=setTimeout(()=>{traceStop().catch(()=>r.errors.push('deadline_cleanup_failed'));},durationMs);
     return {started:true,symbol:name,duration_ms:durationMs};
   }catch(error){r.running=false;if(r.hook)r.hook.detach();throw error;}
 }

@@ -25,7 +25,7 @@ def emit(value):
     print(json.dumps(value, allow_nan=False), flush=True)
 
 
-def run(config: Config, session_id: str, receipt_path: Path) -> None:
+def run(config: Config, session_id: str, receipt_path: Path, backend="coop", bridge_id=None) -> None:
     import frida
 
     config.require_development()
@@ -66,11 +66,31 @@ def run(config: Config, session_id: str, receipt_path: Path) -> None:
     with game_lease(config.game):
         require_closed()
         Saves(config).require_clear()
+        from .mods import require_profile_clear
+
+        require_profile_clear(config, allow_applied=True)
         build = Binary(config).inventory()
         if build["sha256"] != GAME_SHA256:
             raise ToolFailure("unsupported_build", "No native adapter exists for this executable.")
-        deployment = installed(config)
-        verify_offline_settings(config.game)
+        bridge_path, bridge_sha = None, None
+        if backend == "standalone":
+            from .artifacts import Artifacts
+            from .sdk import SDK
+            from .source import Source
+
+            bridge_path, bridge_sha = SDK(config, Source(config), Artifacts(config), None).verified_bridge(
+                bridge_id
+            )
+            # A co-op loader would install competing offline hooks before the observer.
+            if any((config.game / name).exists() for name in ("dinput8.dll", "xinput1_3.dll")):
+                raise ToolFailure(
+                    "loader_conflict",
+                    "Use a restorable profile to disable co-op proxy loaders for standalone research.",
+                )
+            deployment = {"files": {"ddcoop_runtime.dll": None, "ddcoop.ini": None}}
+        else:
+            deployment = installed(config)
+            verify_offline_settings(config.game)
         device = frida.get_local_device()
         try:
             pid = device.spawn(
@@ -81,6 +101,8 @@ def run(config: Config, session_id: str, receipt_path: Path) -> None:
             created = psutil.Process(pid).create_time()
             receipt = {
                 "session_id": session_id,
+                "backend": backend,
+                "bridge_sha256": bridge_sha,
                 "pid": pid,
                 "process_created": created,
                 "owner_pid": os.getpid(),
@@ -91,7 +113,11 @@ def run(config: Config, session_id: str, receipt_path: Path) -> None:
                 "runtime_sha256": deployment["files"]["ddcoop_runtime.dll"],
                 "settings_sha256": deployment["files"]["ddcoop.ini"],
                 "runtime_source_commit": deployment.get("source_commit"),
-                "runtime_provenance": "Installed artifact verified by SHA-256; source commit is unknown unless recorded by its deployment.",
+                "runtime_provenance": (
+                    "Standalone reviewed offline bridge; no co-op runtime loaded."
+                    if backend == "standalone"
+                    else "Installed artifact verified by SHA-256; source commit is unknown unless recorded by its deployment."
+                ),
             }
             atomic_json(receipt_path, receipt)
             threading.Thread(target=watchdog, daemon=True).start()
@@ -107,21 +133,30 @@ def run(config: Config, session_id: str, receipt_path: Path) -> None:
                 + ";\nconst REVIEWED_TRACES = "
                 + json.dumps(TRACES)
                 + ";\n"
-                + Path(__file__).with_name("agent.js").read_text()
+                + (
+                    Path(__file__).with_name("agent.js").read_text(encoding="utf-8")
+                    if backend == "coop"
+                    else ""
+                )
                 + "\n"
                 + Path(__file__).with_name("tracing.js").read_text(encoding="utf-8")
                 + "\n"
                 + Path(__file__).with_name("world.js").read_text(encoding="utf-8")
                 + "\n"
-                + Path(__file__).with_name("control.js").read_text(encoding="utf-8")
+                + Path(__file__)
+                .with_name("control.js" if backend == "coop" else "standalone.js")
+                .read_text(encoding="utf-8")
             )
             script.on(
                 "message", lambda message, data: print(json.dumps(message), file=sys.stderr, flush=True)
             )
             script.load()
             # Recheck file ownership immediately before loading native code.
-            installed(config)
-            script.exports_sync.bootstrap(str(config.game / "ddcoop_runtime.dll"))
+            if backend == "coop":
+                installed(config)
+                script.exports_sync.bootstrap(str(config.game / "ddcoop_runtime.dll"))
+            else:
+                script.exports_sync.research_bootstrap(str(bridge_path))
             device.resume(pid)
             receipt["state"] = "running"
             atomic_json(receipt_path, receipt)
@@ -135,6 +170,24 @@ def run(config: Config, session_id: str, receipt_path: Path) -> None:
                 last_request[0] = time.monotonic()
                 op = request.get("op")
                 try:
+                    if backend == "standalone":
+                        if op == "stop":
+                            emit({"id": request["id"], "ok": True, "value": {"stopping": True}})
+                            break
+                        if op == "heartbeat":
+                            value = {"alive": True}
+                        elif op == "research_status":
+                            value = script.exports_sync.research_status()
+                        elif op == "research_start" and type(request.get("duration_ms")) is int:
+                            value = script.exports_sync.research_start(request["duration_ms"])
+                        elif op == "research_stop":
+                            value = script.exports_sync.research_stop()
+                        else:
+                            raise ToolFailure(
+                                "backend_capability", "Operation is unavailable on standalone observer."
+                            )
+                        emit({"id": request["id"], "ok": True, "value": value})
+                        continue
                     if op in {
                         "neutral",
                         "title_start",
@@ -221,13 +274,15 @@ def main():
     parser.add_argument("--project", type=Path, required=True)
     parser.add_argument("--config", type=Path)
     parser.add_argument("--session-id", required=True)
+    parser.add_argument("--backend", choices=["coop", "standalone"], default="coop")
+    parser.add_argument("--bridge-id")
     args = parser.parse_args()
     from .common import identifier
 
     config = Config.load(args.project, args.config)
     receipt = config.artifacts / "sessions" / (identifier(args.session_id) + ".json")
     try:
-        run(config, args.session_id, receipt)
+        run(config, args.session_id, receipt, args.backend, args.bridge_id)
     except Exception as exc:
         emit({"ready": False, "error": str(exc)[:1000]})
         raise SystemExit(1) from None

@@ -48,6 +48,13 @@ def stage(root=ROOT):
         # Wheel metadata members have fixed extensionless names.
         audit_names(names)
         assert {
+            "ddda_mcp/standalone.js",
+            "ddda_mcp/workbench.py",
+            "ddda_mcp/assets.py",
+            "ddda_mcp/behavior.py",
+            "ddda_mcp/sdk.py",
+            "ddda_mcp/mods.py",
+            "ddda_mcp/suites.py",
             "ddda_mcp/agent.js",
             "ddda_mcp/control.js",
             "ddda_mcp/world.js",

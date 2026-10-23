@@ -36,3 +36,9 @@ SOFTWARE.
 Dependencies are installed separately from the package lock. Their license
 files remain in their distributions. No game files, external dinput8 project
 implementation, Ghidra installation, Frida binary, or co-op DLL is vendored here.
+
+## Asset format research
+
+The ARC v7 reader/writer is an independent Python implementation informed by local DDDA archives and the public [Gibbed.MT ArchiveFile format implementation](https://github.com/gibbed/Gibbed.MT/blob/master/projects/Gibbed.MT.FileFormats/ArchiveFile.cs), copyright Rick (gibbed), distributed under its zlib license. No Gibbed source is copied or vendored. The supported unlabelled GMD schema was checked against local item-name data. Game assets and their rights remain with their owners; generated local test packages are excluded from Git and software releases.
+
+Generated standalone SDK workspaces retain the pinned upstream MIT notice. The bridge builds MinHook from the upstream pinned dependency archive, including its original license files; these generated private sources and binaries are not shipped in this MCP package.

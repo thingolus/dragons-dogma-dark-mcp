@@ -10,6 +10,7 @@
   "profile": "read_only",
   "deployment_candidates": {},
   "analysis_builds": {},
+  "mod_sources": {},
   "save_roots": [],
   "limits": {
     "max_inline_result_bytes": 16384,

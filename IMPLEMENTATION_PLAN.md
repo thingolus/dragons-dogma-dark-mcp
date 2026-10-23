@@ -2,11 +2,11 @@
 
 **Date:** 22 October 2026
 
-**Delivery state:** version 0.8.0 adds the next five gameplay development capabilities: expiring provider ownership, callback world inspection, reusable scenario predicates, failure diagnosis, and isolated baseline/patch verification with build reuse and restoration. See [workflow contracts](docs/GAMEPLAY_DEVELOPMENT.md) and [validation](docs/VALIDATION.md). Historical milestones and estimates below retain their original scope.
+**Delivery state:** version 0.9.0 implements five general modding workflows: differential behavior research with Ghidra references; a versioned SDK and standalone offline observer; ARC/GMD editing; reusable fixture/profile gameplay suites; and mod conflict detection, merging, recovery and private packaging. See [workflow contracts](docs/MODDING_WORKBENCH.md) and [validation](docs/VALIDATION.md). Historical milestones and estimates below retain their original scope.
 
 **Primary source:** [ddda-local-coop at `61ed1bf`](https://github.com/thingolus/ddda-local-coop/tree/61ed1bf830141b75981babe362cef42579eb98e3).
 
-**Baseline refresh:** v0.4.1 now uses [the committed 1.8 candidate at `e6a64c2`](https://github.com/thingolus/ddda-local-coop/tree/e6a64c28d24bf4abda26887b0edeccc8bfd9b2a4), as explicitly requested on 22 October 2026. The original planning baseline below is historical. The current reuse manifest pins 42 files, 225 named signatures and three input thunks; native acceptance gates retain their original evidence scope.
+**Baseline refresh:** v0.4.1 now uses [the committed 1.8 candidate at `e6a64c2`](https://github.com/thingolus/ddda-local-coop/tree/e6a64c28d24bf4abda26887b0edeccc8bfd9b2a4), as explicitly requested on 22 October 2026. The original planning baseline below is historical. The current reuse manifest pins 50 files, 225 named signatures and three input thunks; native acceptance gates retain their original evidence scope.
 
 ## 1. Objective and scope
 
