@@ -1,4 +1,4 @@
-DRAGONS DOGMA DARK MCP 0.11.0 - EXPERIMENTAL
+DRAGONS DOGMA DARK MCP 0.11.1 - EXPERIMENTAL
 Created by Thingolus. MIT license; retain the included notices.
 
 A local mod-development toolkit for Dragon's Dogma: Dark Arisen.

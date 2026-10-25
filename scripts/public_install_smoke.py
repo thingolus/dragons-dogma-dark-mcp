@@ -12,7 +12,7 @@ from mcp.client.stdio import StdioServerParameters
 
 async def main():
     with tempfile.TemporaryDirectory(prefix="ddda-public-install-") as directory:
-        root = Path(directory)
+        root = Path(directory).resolve()
         (root / "config").mkdir()
         (root / "config/local.json").write_text(
             json.dumps(
@@ -46,7 +46,7 @@ async def main():
                 elif name == "verify_upstream":
                     assert data["verified_files"] == 50
                 elif name == "generate_ddda_sdk":
-                    sdk = Path(data["directory"])
+                    sdk = Path(data["directory"]).resolve()
                     assert sdk.is_relative_to(root)
                     assert (sdk / "native_sdk.cpp").is_file()
                     assert (sdk / "example_mod.cpp").is_file()

@@ -1,6 +1,6 @@
 # General DDDA modding workbench
 
-Version 0.11.0, created by **Thingolus**, MIT licensed. See [version 0.11 general modding](GENERAL_MODDING.md) for parameter formats, native plans, atlas/textures, native events and isolation. The original twenty workbench tools extend the research, gameplay, build and save APIs. Version 0.10 also adds [offline experiment/SDK extensions](OFFLINE_EXPERIMENTS.md) and [named item parameters](ITEM_PARAMETERS.md). All generated assets, SDK workspaces, profiles and native evidence remain in the configured private artifact directory.
+Version 0.11.1, created by **Thingolus**, MIT licensed. See [version 0.11 general modding](GENERAL_MODDING.md) for parameter formats, native plans, atlas/textures, native events and isolation. The original twenty workbench tools extend the research, gameplay, build and save APIs. Version 0.10 also adds [offline experiment/SDK extensions](OFFLINE_EXPERIMENTS.md) and [named item parameters](ITEM_PARAMETERS.md). All generated assets, SDK workspaces, profiles and native evidence remain in the configured private artifact directory.
 
 ## Behavior to code
 

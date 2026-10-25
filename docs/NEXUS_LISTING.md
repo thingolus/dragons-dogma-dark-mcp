@@ -1,4 +1,4 @@
-# Nexus Mods upload information — 0.11.0
+# Nexus Mods upload information — 0.11.1
 
 Prepared for Thingolus, 25 October 2026. The description below is ready to paste into the Nexus editor. Upload the ZIP as a separate toolkit page for Dragon's Dogma: Dark Arisen.
 
@@ -9,17 +9,17 @@ Prepared for Thingolus, 25 October 2026. The description below is ready to paste
 | Game | Dragon's Dogma: Dark Arisen |
 | Mod name | Dragons Dogma Dark MCP - Modding Toolkit |
 | Author | Thingolus |
-| Version | 0.11.0 |
+| Version | 0.11.1 |
 | Category | Modders Resources and Tutorials |
 | Release status | Experimental developer release |
 | File category | Main Files |
-| File display name | Dragons Dogma Dark MCP 0.11.0 - Experimental |
-| File to upload | `Dragons-Dogma-Dark-MCP-0.11.0-Experimental.zip` |
+| File display name | Dragons Dogma Dark MCP 0.11.1 - Experimental |
+| File to upload | `Dragons-Dogma-Dark-MCP-0.11.1-Experimental.zip` |
 | Installation | Manual download; disable Download with Mod Manager if the uploader offers it |
 | Language | English |
 | Adult content | No |
 | Source | https://github.com/thingolus/dragons-dogma-dark-mcp |
-| Release | https://github.com/thingolus/dragons-dogma-dark-mcp/releases/tag/v0.11.0 |
+| Release | https://github.com/thingolus/dragons-dogma-dark-mcp/releases/tag/v0.11.1 |
 | Issue tracker | https://github.com/thingolus/dragons-dogma-dark-mcp/issues |
 
 ### Short description
@@ -28,7 +28,7 @@ A local MCP toolkit for Dragon's Dogma: Dark Arisen mod development. Connect an 
 
 ### Main file description
 
-Complete 0.11.0 experimental toolkit: Python source, locked dependencies, bundled licensed research, SDK source, documentation and setup scripts. Requires Python 3.13+, uv and an MCP client with local stdio support. Extract into a separate writable folder and read START_HERE.txt. Manual installation; no game files or compiled DLLs included.
+Complete 0.11.1 experimental toolkit: Python source, locked dependencies, bundled licensed research, SDK source, documentation and setup scripts. Requires Python 3.13+, uv and an MCP client with local stdio support. Extract into a separate writable folder and read START_HERE.txt. Manual installation; no game files or compiled DLLs included.
 
 ## Full description — paste into the mod page
 
@@ -48,7 +48,7 @@ Created by **Thingolus**. This is an **experimental developer toolkit** for mod 
 - Compare recorded experiments, compose mod profiles and inspect private diagnostic reports.
 - With the optional reviewed co-op runtime, run bounded native experiments and inspect copied gameplay observations.
 
-Version 0.11.0 exposes **103 typed MCP tools**. Core research and standalone SDK generation use bundled licensed source, so they do not require access to the optional co-op repository.
+Version 0.11.1 exposes **103 typed MCP tools**. Core research and standalone SDK generation use bundled licensed source, so they do not require access to the optional co-op repository.
 
 ### Requirements
 
@@ -140,7 +140,7 @@ Choose the available developer-tool/resource tags that accurately describe the p
 
 ### Images
 
-Use real screenshots: the connected tool list, a successful research query, and a supported parameter diff or texture preview. Crop private paths, account information and unrelated windows. A title image can say “Dragons Dogma Dark MCP / Modding Toolkit / 0.11.0 Experimental / by Thingolus.” Do not label screenshots of synthetic tests as native gameplay results.
+Use real screenshots: the connected tool list, a successful research query, and a supported parameter diff or texture preview. Crop private paths, account information and unrelated windows. A title image can say “Dragons Dogma Dark MCP / Modding Toolkit / 0.11.1 Experimental / by Thingolus.” Do not label screenshots of synthetic tests as native gameplay results.
 
 ### Changelog
 

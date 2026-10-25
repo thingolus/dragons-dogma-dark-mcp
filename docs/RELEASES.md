@@ -1,12 +1,12 @@
 # Install and release Dragons Dogma Dark MCP
 
-Created by **Thingolus**, MIT licensed. Version 0.11.0. Retain the copyright and license notices when modifying or redistributing this software.
+Created by **Thingolus**, MIT licensed. Version 0.11.1. Retain the copyright and license notices when modifying or redistributing this software.
 
 Version 0.11 provides 103 typed tools across parameter editing, native experiments, global asset discovery and texture workflows, a standalone native event SDK, and crash/mod-isolation diagnostics. See [workflows and explicit limits](GENERAL_MODDING.md) and [validation](VALIDATION.md).
 
 ## Install a versioned package
 
-For a manual Windows/Nexus installation, download `Dragons-Dogma-Dark-MCP-0.11.0-Experimental.zip`, extract it into a separate writable folder and follow `START_HERE.txt`. It contains the audited source distribution as plain files, without nested archives. [Nexus upload fields and description](NEXUS_LISTING.md) are included for the maintainer.
+For a manual Windows/Nexus installation, download `Dragons-Dogma-Dark-MCP-0.11.1-Experimental.zip`, extract it into a separate writable folder and follow `START_HERE.txt`. It contains the audited source distribution as plain files, without nested archives. [Nexus upload fields and description](NEXUS_LISTING.md) are included for the maintainer.
 
 Download the source archive, wheel and `SHA256SUMS` from the repository release or Actions artifact. Verify the files against `SHA256SUMS` (Windows: `Get-FileHash -Algorithm SHA256`; Linux: `sha256sum --check SHA256SUMS`). Extract the source archive into its own project folder, outside the co-op source checkout. It contains configuration examples, the pinned reuse manifest, scripts and documentation; the wheel also includes the curated research snapshot, so core status/research can run from an empty project directory. Local configuration remains your responsibility.
 

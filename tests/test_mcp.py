@@ -1,5 +1,6 @@
 import asyncio
 import json
+import os
 import sys
 
 from mcp import Client
@@ -125,10 +126,10 @@ def test_artifact_budget_includes_persisted_format(config):
         assert app.artifacts.get(saved["artifact_id"])["data"]["rows"]
 
 
-def test_expansion_stdio_memory_restart_checkpoint_and_guards(development):
+def test_expansion_stdio_memory_restart_checkpoint_and_guards(development, monkeypatch):
     from test_expansion import fixture_checkpoint
 
-    harness, _, trace, backup = fixture_checkpoint(development)
+    _, fixture_id, trace, backup = fixture_checkpoint(development, monkeypatch)
     atomic_json(development.root / "config/local.json", development.settings.model_dump())
     parameters = StdioServerParameters(
         command=sys.executable, args=["-m", "ddda_mcp", "--project", str(development.root)]
@@ -142,10 +143,16 @@ def test_expansion_stdio_memory_restart_checkpoint_and_guards(development):
                 assert not response.is_error, response.structured_content
                 return response.structured_content["data"]
 
-            checkpoint = await call(
+            response = await client.call_tool(
                 "create_gameplay_checkpoint",
                 {"backup_id": backup, "trace_id": trace["artifact_id"], "label": "synthetic stdio fixture"},
             )
+            if os.name == "nt":
+                assert not response.is_error, response.structured_content
+                checkpoint = response.structured_content["data"]
+            else:
+                assert response.structured_content["error"]["code"] == "unsupported_host"
+                checkpoint = {"artifact_id": fixture_id}
             note = await call(
                 "record_investigation_note",
                 {
@@ -174,11 +181,11 @@ def test_expansion_stdio_memory_restart_checkpoint_and_guards(development):
     asyncio.run(run())
 
 
-def test_workbench_stdio_asset_profile_and_fixture_workflow(development):
+def test_workbench_stdio_asset_profile_and_fixture_workflow(development, monkeypatch):
     from test_expansion import fixture_checkpoint
     from test_workbench import arc, gmd
 
-    _, _, trace, backup = fixture_checkpoint(development)
+    _, fixture_id, trace, backup = fixture_checkpoint(development, monkeypatch)
     target = development.game / "nativePC/fixture.arc"
     target.parent.mkdir()
     original = arc([gmd(["Apple", "Sword"])])
@@ -227,12 +234,16 @@ def test_workbench_stdio_asset_profile_and_fixture_workflow(development):
             assert profile["summary"]["compatible"]
             package = await call("mod_profile", operation="package", profile_id=profile["artifact_id"])
             assert package["private"]
-            checkpoint = await call(
+            response = await client.call_tool(
                 "create_gameplay_checkpoint",
-                backup_id=backup,
-                trace_id=trace["artifact_id"],
-                label="Synthetic suite fixture",
+                {"backup_id": backup, "trace_id": trace["artifact_id"], "label": "Synthetic suite fixture"},
             )
+            if os.name == "nt":
+                assert not response.is_error, response.structured_content
+                checkpoint = response.structured_content["data"]
+            else:
+                assert response.structured_content["error"]["code"] == "unsupported_host"
+                checkpoint = {"artifact_id": fixture_id}
             fixture = await call(
                 "register_gameplay_fixture", checkpoint_id=checkpoint["artifact_id"], label="Synthetic inn"
             )

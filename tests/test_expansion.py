@@ -69,7 +69,11 @@ def test_readiness_requires_fresh_callbacks():
     assert not world_ready(sample(2), before)
 
 
-def fixture_checkpoint(development):
+def fixture_checkpoint(development, monkeypatch):
+    # These files and observations are synthetic pytest fixtures. Keep the real
+    # native-host guards in production, including stdio subprocesses, unchanged.
+    monkeypatch.setattr("ddda_mcp.saves.require_closed", lambda: None)
+    monkeypatch.setattr("ddda_mcp.harness.require_closed", lambda: None)
     saves_root = development.root / "saves"
     saves_root.mkdir()
     (saves_root / "DDDA.sav").write_bytes(b"known-save")
@@ -80,7 +84,7 @@ def fixture_checkpoint(development):
     trace = artifacts.put(
         "runtime_trace",
         {"summary": {"outcome": "completed"}, "samples": [sample(i) for i in range(1, 5)]},
-        {"session_id": "a" * 32, "game_sha256": GAME_SHA256, "evidence_class": "native_observation"},
+        {"session_id": "a" * 32, "game_sha256": GAME_SHA256, "evidence_class": "synthetic_native"},
     )
     session = FakeSession(development)
     harness = Harness(development, artifacts, session, saves)
@@ -88,8 +92,8 @@ def fixture_checkpoint(development):
     return harness, checkpoint, trace, backup
 
 
-def test_checkpoint_rejects_changed_save_and_evidence(development):
-    harness, checkpoint, trace, backup = fixture_checkpoint(development)
+def test_checkpoint_rejects_changed_save_and_evidence(development, monkeypatch):
+    harness, checkpoint, trace, backup = fixture_checkpoint(development, monkeypatch)
     assert harness.load(checkpoint)["stage"] == 220
     root = harness.saves.roots()[0]
     (root / "DDDA.sav").write_bytes(b"unknown save")
@@ -102,8 +106,8 @@ def test_checkpoint_rejects_changed_save_and_evidence(development):
         harness.load(checkpoint)
 
 
-def test_checkpoint_rejects_supplied_offline_evidence(development):
-    harness, _, trace, backup = fixture_checkpoint(development)
+def test_checkpoint_rejects_supplied_offline_evidence(development, monkeypatch):
+    harness, _, trace, backup = fixture_checkpoint(development, monkeypatch)
     doc = harness.artifacts.get(trace["artifact_id"])
     doc["provenance"]["evidence_class"] = "offline_supplied"
     atomic_json(harness.artifacts.path(trace["artifact_id"]), doc)
@@ -111,8 +115,8 @@ def test_checkpoint_rejects_supplied_offline_evidence(development):
         harness.checkpoint(backup, trace["artifact_id"], "offline")
 
 
-def test_harness_timeout_cleans_owned_session_and_retains_failure(development):
-    harness, checkpoint, _, _ = fixture_checkpoint(development)
+def test_harness_timeout_cleans_owned_session_and_retains_failure(development, monkeypatch):
+    harness, checkpoint, _, _ = fixture_checkpoint(development, monkeypatch)
 
     async def run():
         async def snapshot():
@@ -233,7 +237,7 @@ def test_bisection_never_treats_flakes_as_regression(outcomes):
     assert result["state"] == "inconclusive"
 
 
-def test_campaign_build_deploy_launch_evaluate_and_restore(candidate):
+def test_campaign_build_deploy_launch_evaluate_and_restore(candidate, monkeypatch):
     config, candidate_root = candidate
     deployment = Deployment(config)
     initial = deployment.prepare("fixture")["receipt_id"]
@@ -242,7 +246,7 @@ def test_campaign_build_deploy_launch_evaluate_and_restore(candidate):
         name: digest(config.game / name)
         for name in ("dinput8.dll", "ddcoop_runtime.dll", "ddcoop.ini", "ddcoop-deployment.json")
     }
-    harness, checkpoint, _, _ = fixture_checkpoint(config)
+    harness, checkpoint, _, _ = fixture_checkpoint(config, monkeypatch)
     artifacts = harness.artifacts
     revision = "a" * 40
     second = "b" * 40

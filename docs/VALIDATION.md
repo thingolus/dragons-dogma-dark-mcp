@@ -1,6 +1,6 @@
 # Validation and remaining acceptance
 
-Version **0.11.0**, validated on 24 October 2026. Creator: **Thingolus**. This record distinguishes synthetic implementation tests, actual native observations and remaining gameplay coverage. Earlier milestone sections below retain their historical evidence scope.
+Version **0.11.1**, release preparation on 25 October 2026; native observations were validated on 24 October. Creator: **Thingolus**. This record distinguishes synthetic implementation tests, actual native observations and remaining gameplay coverage. Earlier milestone sections below retain their historical evidence scope.
 
 ## General modding and public installation (v0.11)
 
@@ -18,6 +18,8 @@ The implemented mod-isolation state machine has model/fault-injection coverage f
 Public installation was exercised from a wheel in a separate environment through an actual isolated stdio process in an empty temporary project: 103 tools with output schemas, bundled source verification, symbol/source queries, the SDK catalog and SDK generation all passed without a game installation or co-op checkout. `scripts/public_install_smoke.py` makes this a release-CI gate. The wheel/source archive content audit also checks the nested bundled source paths, licenses and hashes. Package staging includes checksums and excludes private/game files. Release preparation on 25 October adds a plain-source Nexus ZIP and setup/listing documentation. Publication status is recorded by the GitHub release, separately from this native evidence.
 
 The 25 October release preparation passes **434 Windows Python tests**, Ruff lint/format and package audits. Six additional packaging cases cover reproducible Nexus ZIP creation, private/nested/unsafe member refusal, links and mismatched version roots. A newly extracted Nexus ZIP installed its locked dependencies in an isolated temporary directory and passed the actual 103-tool public-install stdio smoke without a game or co-op checkout. These packaging checks do not add native gameplay acceptance.
+
+The first 0.11.0 hosted run identified synthetic fixtures calling Windows-only save/checkpoint guards on Linux and an unresolved Windows temporary-path alias in the installation smoke. Version 0.11.1 isolates synthetic fixture setup and explicitly checks the real stdio `unsupported_host` refusal on non-Windows systems. The installation smoke resolves both paths before its containment assertion; a local run with an actual Windows short-path alias passed. Production native guards are unchanged. The initial 0.11.0 tag remains available as history and has no published release assets.
 
 ## Offline experiment, SDK and item-data expansion (v0.10)
 

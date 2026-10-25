@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.11.1
+
+- Public experimental release with an audited manual-install Nexus ZIP, setup guide, checksums and upload description.
+- Keep synthetic checkpoint setup independent of Windows process checks; real stdio calls still verify that native operations are refused on unsupported hosts.
+- Resolve Windows temporary-directory aliases before checking generated SDK containment during isolated installation validation.
+
 ## 0.11.0
 
 - Named XFS/PRPZ, SKL, LOT encounter and IST loot parameter editing, lossless patches and field-level conflict detection.

@@ -1,6 +1,6 @@
 # Offline experiments and SDK extensions
 
-Version 0.11.0, created by **Thingolus**, MIT licensed.
+Version 0.11.1, created by **Thingolus**, MIT licensed.
 
 This milestone implements the offline parts of the experiment runner and broader SDK. It can validate a plan, replay copied observations and recorded actions, explain an inconclusive outcome, and generate reusable C++/JSON contracts with the game closed. The offline replay module has no native session or desktop dependency. Version 0.11 adds a separate `run_native_experiment` dispatcher; see [native workflows](GENERAL_MODDING.md). It does not launch DDDA, navigate menus, send input, load checkpoints, or restore an installation.
 

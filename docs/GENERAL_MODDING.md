@@ -1,6 +1,6 @@
 # General mod development workflows
 
-Version 0.11.0. Created by **Thingolus**, MIT licensed. The server has 103 typed tools. Private artifacts carry hashes and evidence labels; none of the workflows below distribute game data.
+Version 0.11.1. Created by **Thingolus**, MIT licensed. The server has 103 typed tools. Private artifacts carry hashes and evidence labels; none of the workflows below distribute game data.
 
 ## Find, edit and compare parameters
 

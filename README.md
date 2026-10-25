@@ -2,9 +2,9 @@
 
 A local Model Context Protocol toolkit for developing mods for **Dragon's Dogma: Dark Arisen (DDDA / Dragon's Dogma 1)**.
 
-Created by **Thingolus**. Version **0.11.0** implements 103 typed MCP tools and four resource routes over stdio. It reuses the co-op project's pinned research, signatures, runtime ABI, build targets, and deployment conventions.
+Created by **Thingolus**. Version **0.11.1** implements 103 typed MCP tools and four resource routes over stdio. It reuses the co-op project's pinned research, signatures, runtime ABI, build targets, and deployment conventions.
 
-Download the [experimental releases](https://github.com/thingolus/dragons-dogma-dark-mcp/releases). For a manual Windows installation, choose `Dragons-Dogma-Dark-MCP-0.11.0-Experimental.zip` and follow its `START_HERE.txt`. This is a developer toolkit with manual setup; keep it in a separate writable folder.
+Download the [experimental releases](https://github.com/thingolus/dragons-dogma-dark-mcp/releases). For a manual Windows installation, choose `Dragons-Dogma-Dark-MCP-0.11.1-Experimental.zip` and follow its `START_HERE.txt`. This is a developer toolkit with manual setup; keep it in a separate writable folder.
 
 Version 0.11 adds named skill/enemy/encounter/loot parameter editing, a native experiment runner, a global asset atlas with TEX/DDS/PNG workflows, a standalone native event SDK, and crash diagnostics with mod-set isolation. See the [new workflows and limits](docs/GENERAL_MODDING.md) and [validation evidence](docs/VALIDATION.md).
 

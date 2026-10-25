@@ -1,6 +1,6 @@
 # Named game parameters
 
-Version 0.11.0. Created by **Thingolus**, MIT licensed.
+Version 0.11.1. Created by **Thingolus**, MIT licensed.
 
 `inspect_game_parameters`, `edit_game_parameters`, and `diff_game_parameters` operate on extracted private `asset_blob` artifacts. The editor identifies the serialized format from its bytes, returns named field paths, and exposes whether each field is editable. Every edit requires the expected old value. It preserves record sizes, opaque headers, unknown fields, references and bytes outside the selected fields; it reparses and checks the result before storing it.
 
