@@ -1,10 +1,10 @@
 # Architecture
 
-Version 0.7.0 by Thingolus. The Python MCP server runs outside DDDA and exposes a typed stdio interface. Tools return structured envelopes containing request ID, operation, capture time, duration, provenance, and success or a machine-readable error. Larger results become local artifacts with bounded reads.
+Version 0.11.0 by Thingolus. The Python MCP server runs outside DDDA and exposes a typed stdio interface. Tools return structured envelopes containing request ID, operation, capture time, duration, provenance, and success or a machine-readable error. Larger results become local artifacts with bounded reads.
 
 ## Reuse and source identity
 
-The server reads immutable Git objects at the commit in `reuse-manifest.json`; it does not import scripts from the active co-op working tree. It verifies the 42 inventoried blob identities and builds a SQLite FTS5 index from pinned documentation and experiment records. Symbol results merge research records with generated signature entries and point back to their source. This preserves the co-op project's accumulated knowledge while leaving its active work untouched.
+The server reads immutable Git objects at the commit in `reuse-manifest.json`; it does not import scripts from the active co-op working tree. When the optional checkout is absent, a curated package snapshot supplies hash-verified research and standalone SDK dependencies. It verifies the 50 inventoried blob identities and builds a SQLite FTS5 index from available pinned documentation and experiment records. The bundled subset is smaller than a full source checkout. Symbol results merge research records with generated signature entries and point back to their source.
 
 Static inspection parses one immutable byte snapshot of the PE file, derives its SHA-256, and uses Capstone for bounded x86 disassembly. Unknown executables can receive static analysis but cannot enter native operation paths. The native adapter requires the supported executable fingerprint recorded in the manifest.
 
@@ -38,7 +38,7 @@ Deployment accepts named local candidates with an exact three-file hash inventor
 
 Save roots are explicitly configured. Restore validates both the target backup and durable undo inventory, then journals `prepared`, `restoring` or `rolling_back`, and finally `completed` or `rolled_back`. A marker in the game directory blocks native startup across artifact-root configurations. Hash reconciliation admits only the recorded old/new contents, so recovery can handle a crash after replacement but before journal completion. Files are staged and flushed before per-file atomic replacement; the whole set is recoverable, not simultaneously atomic. Existing targets are required; fixture installation and cloud-save coordination remain outside scope.
 
-The three movement recipes share copied-state guards in Python and the inert JS adapter. Only fixed recipe names cross the broker; the adapter maps them to a selected player's assigned slot and one fixed stick value. Input is released on cancellation/failure, with owned-process termination if release cannot be established. The catalog labels synthetic contract coverage separately from pending real-game acceptance.
+The fixed action catalog shares copied-state guards in Python and the inert JS adapter. Only allowlisted commands cross the broker; the adapter maps them to a selected player's assigned slot and bounded input. Input is released on cancellation/failure, with owned-process termination if release cannot be established. The catalog and validation record distinguish synthetic contracts from native acceptance.
 
 
 ## Live development composition
@@ -57,3 +57,13 @@ repeated idle trials and rollback. Cancellation drains the current transaction
 before cleanup; process-death recovery remains journal-based. Client menu loading
 is an explicit phase between preparation and evaluation. See
 [LIVE_DEVELOPMENT.md](LIVE_DEVELOPMENT.md) for operational limits and recovery.
+
+## General modding composition
+
+`game_parameters.py` and `encounters.py` parse bounded serialized formats and patch only reviewed numeric fields. Parameter changes retain original-byte hashes and expected values for lossless diffs and conflict detection. `asset_atlas.py` indexes ARC headers in private SQLite databases and validates archive snapshots before extraction. `textures.py` preserves supported TEX mip payloads through DDS conversion and produces bounded PNG previews.
+
+`native_experiments.py` dispatches saved fixed-input plans through the reviewed co-op provider, records callback-derived frames, and applies the same goal rules as offline replay. Evidence provenance remains distinct. `suites.py` composes checkpoint, profile and deployment transactions around trials. `mod_isolation.py` persists subset/complement searches over repeated suite outcomes; unknown or flaky results cannot establish a culprit.
+
+The standalone bridge's `native_sdk.cpp` provides a versioned copied-event C ABI over a bounded single-consumer queue. Its hook is signature-checked, samples only in the reviewed callback and preserves the original execution state. Stop restores original instructions and retains the disabled trampoline until process exit. It shares hook ownership exclusively with the legacy world observer. Standalone input is unavailable.
+
+`crash_observer.js` records bounded module-relative exception/thread evidence from the owned process. `crashes.py` retains durable reports and optionally captures private Windows minidumps. Observed exceptions, fatal crash reports and unexpected detach remain separate classifications. See [general workflows](GENERAL_MODDING.md) for capability boundaries.

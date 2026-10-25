@@ -3,7 +3,7 @@
 import hashlib
 import re
 import subprocess
-from pathlib import PurePosixPath
+from pathlib import Path, PurePosixPath
 
 from .common import ToolFailure, read_json
 from .config import Config
@@ -15,8 +15,22 @@ class Source:
         self.commit = config.settings.coop_source_commit
         self._tree: dict[str, tuple[str, int]] | None = None
         self._blobs: dict[str, bytes] = {}
+        self.bundled = not config.source.exists()
+        self._snapshot = None
+
+    def snapshot(self):
+        if self._snapshot is None:
+            self._snapshot = read_json(Path(__file__).with_name("pinned_research.json"))
+        if self._snapshot["commit"] != self.commit:
+            raise ToolFailure("source_mismatch", "Bundled research supports only its reviewed commit.")
+        return self._snapshot
 
     def git(self, *args: str, stdin: bytes | None = None, timeout: int = 30) -> bytes:
+        if self.bundled:
+            raise ToolFailure(
+                "source_checkout_required",
+                "This optional co-op operation needs the configured Git checkout. Core tools use bundled pinned research.",
+            )
         try:
             proc = subprocess.run(
                 ["git", "-C", str(self.config.source), *args],
@@ -33,6 +47,18 @@ class Source:
 
     def tree(self) -> dict[str, tuple[str, int]]:
         if self._tree is None:
+            if self.bundled:
+                tree, blobs = {}, {}
+                for path, row in self.snapshot()["files"].items():
+                    raw = row["text"].encode("utf-8")
+                    sha = hashlib.sha1(f"blob {len(raw)}\0".encode() + raw).hexdigest()
+                    if sha != row["git_blob_sha1"]:
+                        raise ToolFailure("source_mismatch", f"Bundled source hash mismatch: {path}")
+                    tree[path] = (sha, len(raw))
+                    blobs[path] = raw
+                self._tree = tree
+                self._blobs.update(blobs)
+                return self._tree
             resolved = self.git("rev-parse", "--verify", f"{self.commit}^{{commit}}").decode().strip()
             if resolved != self.commit:
                 raise ToolFailure("source_mismatch", "Upstream commit does not resolve exactly.")
@@ -85,14 +111,20 @@ class Source:
         }
 
     def verify(self) -> dict:
-        manifest = read_json(self.config.root / "reuse-manifest.json")
+        manifest_path = self.config.root / "reuse-manifest.json"
+        manifest = read_json(manifest_path) if manifest_path.is_file() else self.snapshot()["reuse_manifest"]
         if manifest["upstream"]["commit"] != self.commit:
             raise ToolFailure("source_mismatch", "Config commit differs from the reviewed reuse manifest.")
         files = [f for group in manifest["components"] for f in group["files"]]
         for file in files:
             if self.tree().get(file["path"], (None,))[0] != file["git_blob_sha1"]:
                 raise ToolFailure("source_mismatch", f"Source inventory mismatch: {file['path']}")
-        return {"commit": self.commit, "verified_files": len(files), "dirty_inputs_used": False}
+        return {
+            "commit": self.commit,
+            "verified_files": len(files),
+            "dirty_inputs_used": False,
+            "access": "bundled_snapshot" if self.bundled else "git_checkout",
+        }
 
     def knowledge_paths(self) -> list[str]:
         return [

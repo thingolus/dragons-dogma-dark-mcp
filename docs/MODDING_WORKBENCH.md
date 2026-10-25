@@ -1,6 +1,6 @@
 # General DDDA modding workbench
 
-Version 0.9.0, created by **Thingolus**, MIT licensed. These twenty tools extend the existing research, gameplay, build and save APIs. All generated assets, SDK workspaces, profiles and native evidence remain in the configured private artifact directory.
+Version 0.11.0, created by **Thingolus**, MIT licensed. See [version 0.11 general modding](GENERAL_MODDING.md) for parameter formats, native plans, atlas/textures, native events and isolation. The original twenty workbench tools extend the research, gameplay, build and save APIs. Version 0.10 also adds [offline experiment/SDK extensions](OFFLINE_EXPERIMENTS.md) and [named item parameters](ITEM_PARAMETERS.md). All generated assets, SDK workspaces, profiles and native evidence remain in the configured private artifact directory.
 
 ## Behavior to code
 
@@ -31,7 +31,8 @@ Supported structured formats:
 | --- | --- | --- |
 | Little-endian unencrypted ARC v7 | Index, extract, replace and repack | 512 MiB archive, 8192 entries, 32 MiB decompressed entry |
 | Unlabelled GMD v0x10201 | UTF-8 text edits by index | No label/pointer tables; at most 100 edits per operation |
-| Other ARC payloads | Opaque extraction/replacement | No semantic validation of XFS, LOT, TEX, meshes, quest or item-stat layouts |
+| ITL2 v20121105 | Eleven named item fields, reference validation, bit-preserving patches and field-level merges | At most 100 field edits; unknown fields/layouts remain untouched; gameplay effects unverified |
+| Other ARC payloads | Opaque extraction/replacement | No semantic validation of general XFS, LOT, TEX, meshes, quest, skill or enemy layouts |
 
 Unknown layouts are refused by the structured editor. Archives retain unused original compressed payload bytes when replacements are appended; repacking is intentionally not a compacting operation. Test data and binaries are never included in software release packages.
 
@@ -39,7 +40,7 @@ Unknown layouts are refused by the structured editor. Archives retain unused ori
 
 `register_mod` records private asset IDs and targets, optional named hook declarations and required mod IDs. Targets are nativePC ARC files or root DLL/INI files; DLL payloads must be x86 PE files. `import_mod` imports a trusted directory named in local `mod_sources` configuration. Its `mod.json` contains `label`, `files` with `source`, `target`, `sha256`, and optional `hooks`/`requires`. Paths stay under that configured directory and every imported byte stream is hash-checked.
 
-`compose_mod_profile` detects duplicate targets, missing dependencies and declared hook overlaps. It can merge independent entries of archives derived from the same recorded base, and independent supported GMD text-index edits within an entry. Conflicting text changes and opaque replacements remain unresolved. Static compatibility does not prove undeclared hook or gameplay compatibility.
+`compose_mod_profile` detects duplicate targets, missing dependencies and declared hook overlaps. It can merge independent entries of archives derived from the same recorded base, independent supported GMD text-index edits, and ITL2 changes to distinct item/field pairs within an entry. Conflicting field/text changes and opaque replacements remain unresolved. Static compatibility does not prove undeclared hook or gameplay compatibility.
 
 `mod_profile(operation="apply", profile_id=...)` backs up originals, writes the game-directory recovery marker, and replaces only known hashes. `operation="restore"` restores original and originally absent files. Unknown user edits block recovery without being overwritten. Keep the marker and journal until recovery succeeds; do not delete them to bypass guards. Restore a profile before rolling back an underlying deployment. Suite-owned profiles also record a transaction owner so another suite cannot restore them accidentally.
 

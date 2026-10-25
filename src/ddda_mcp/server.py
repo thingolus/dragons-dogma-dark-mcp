@@ -104,19 +104,45 @@ class Application:
         )
         from .assets import Assets
         from .behavior import Behaviors
+        from .experiments import Experiments
+        from .gameplay_events import GameplayRecordings
         from .mods import Mods
+        from .parameters import Parameters
         from .sdk import SDK
         from .suites import Suites
 
         self.assets = Assets(config, self.artifacts)
+        self.parameters = Parameters(self.assets)
         self.mods = Mods(config, self.artifacts, self.assets)
         self.sdk = SDK(config, self.source, self.artifacts, self.builds)
         self.behaviors = Behaviors(self)
         self.suites = Suites(self)
+        self.recordings = GameplayRecordings(self.artifacts)
+        self.experiments = Experiments(self.artifacts, self.recordings)
+        from .asset_atlas import AssetAtlas
+        from .game_parameters import GameParameters
+        from .textures import Textures
+
+        self.game_parameters = GameParameters(self.assets)
+        self.asset_atlas = AssetAtlas(self.assets)
+        self.textures = Textures(self.assets)
+        from .crashes import Crashes
+
+        self.crashes = Crashes(self)
+        from .native_experiments import NativeExperiments
+
+        self.native_experiments = NativeExperiments(self)
+        from .mod_isolation import ModIsolation
+
+        self.mod_isolation = ModIsolation(self)
 
     def project_status(self) -> dict:
         verified = self.source.verify()
-        status = self.source.git("status", "--porcelain", "--untracked-files=no").decode()
+        status = (
+            ""
+            if self.source.bundled
+            else self.source.git("status", "--porcelain", "--untracked-files=no").decode()
+        )
         return {
             "name": "Dragons Dogma Dark MCP",
             "version": __version__,
@@ -125,6 +151,8 @@ class Application:
             "profile": self.config.settings.profile,
             "upstream": verified,
             "upstream_worktree_dirty": bool(status),
+            "source_access": "bundled_snapshot" if self.source.bundled else "git_checkout",
+            "optional_coop_checkout_available": not self.source.bundled,
             "dirty_worktree_used": False,
             "upstream_compatibility": self.compatibility.status(),
             "knowledge_documents": len(self.source.knowledge_paths()),
@@ -170,6 +198,19 @@ class Application:
                 "private_arc_gmd_editing",
                 "fixture_profile_matrices",
                 "journaled_mod_profiles",
+                "offline_experiment_plans",
+                "native_experiment_plans",
+                "named_game_parameters",
+                "global_asset_atlas",
+                "tex_dds_png",
+                "native_sdk_events",
+                "private_crash_diagnostics",
+                "mod_set_isolation",
+                "recorded_action_replay",
+                "typed_gameplay_observations",
+                "derived_gameplay_events",
+                "structured_item_parameters",
+                "item_field_conflict_merging",
             ],
             "live_requirements": "development profile, Frida extra, exact game, no existing DDDA process; co-op requires a manifest-owned runtime, standalone a verified bridge and disabled competing loaders",
             "limits": self.config.settings.limits.model_dump(),
@@ -282,7 +323,7 @@ def create_server(config: Config, config_path: Path | None = None) -> tuple[MCPS
 
     @mcp.tool(annotations=Read)
     async def verify_upstream() -> Result:
-        """Verify all 42 reviewed source blob identities without changing the co-op checkout."""
+        """Verify the reviewed source blob inventory without changing the co-op checkout."""
         return await app.invoke("verify_upstream", app.source.verify)
 
     @mcp.tool(annotations=Read)
@@ -755,7 +796,11 @@ def create_server(config: Config, config_path: Path | None = None) -> tuple[MCPS
         """List fixed input actions, reusable scenarios and their exact evidence limits."""
         return await app.invoke(
             "gameplay_catalog",
-            lambda: {**app.scenarios.catalog(), "actions": sorted(ACTIONS), "control_modes": ["pair", "solo"]},
+            lambda: {
+                **app.scenarios.catalog(),
+                "actions": sorted(ACTIONS),
+                "control_modes": ["pair", "solo"],
+            },
         )
 
     @mcp.tool(annotations=Write)
@@ -837,4 +882,22 @@ def create_server(config: Config, config_path: Path | None = None) -> tuple[MCPS
     from .workbench import register_tools
 
     register_tools(mcp, app)
+    from .experiment_tools import register_tools as register_experiments
+
+    register_experiments(mcp, app)
+    from .parameter_tools import register_tools as register_parameters
+
+    register_parameters(mcp, app)
+    from .authoring_tools import register_tools as register_authoring
+
+    register_authoring(mcp, app)
+    from .crashes import register_tools as register_crashes
+
+    register_crashes(mcp, app)
+    from .native_experiments import register_tools as register_native_experiments
+
+    register_native_experiments(mcp, app)
+    from .mod_isolation import register_tools as register_isolation
+
+    register_isolation(mcp, app)
     return mcp, app

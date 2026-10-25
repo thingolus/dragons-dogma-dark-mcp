@@ -51,6 +51,9 @@ jobs:
           if [ "$RUNNER_OS" = "Windows" ]; then py=.release-test/Scripts/python.exe; else py=.release-test/bin/python; fi
           uv pip install --python "$py" dist/release/*.whl
           "$py" -I -m ddda_mcp --version
+          mkdir -p .release-test/empty-project
+          "$py" -I -m ddda_mcp --project .release-test/empty-project --check
+          "$py" -I scripts/public_install_smoke.py
       - name: Store test results
         if: always()
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
@@ -87,7 +90,7 @@ jobs:
         run: |
           sha256sum --check SHA256SUMS
           if ! gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
-            gh release create "$RELEASE_TAG" --verify-tag --draft --title "$RELEASE_TAG" --notes-file INSTALL.md
+            gh release create "$RELEASE_TAG" --verify-tag --draft --prerelease --title "$RELEASE_TAG — Experimental" --notes-file RELEASE_NOTES.md
           fi
           test "$(gh release view "$RELEASE_TAG" --json isDraft --jq .isDraft)" = true
           gh release upload "$RELEASE_TAG" ./* --clobber

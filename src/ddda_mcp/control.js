@@ -50,7 +50,8 @@ function controlRelease(reason='requested') {
 function controlStatus(){
   const r=controlRun;
   return r?{running:r.running,phase:r.phase,reason:r.reason||null,deadline_ms:r.deadline,
-    mode:r.mode,action:r.action?.name||null,errors:r.errors.slice()}: {running:false,phase:'unclaimed'};
+    mode:r.mode,action:r.action?.name||null,errors:r.errors.slice(),
+    menu_blocked:r.running?controlMenuBlocked(snapshot(),r.mode,r.p1Advanced!==null&&Date.now()-r.p1Advanced<150):null}: {running:false,phase:'unclaimed'};
 }
 async function controlClaim(mode='pair'){
   if(!['pair','solo'].includes(mode))throw Error('invalid_control_mode');

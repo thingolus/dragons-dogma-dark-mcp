@@ -15,7 +15,7 @@ def test_real_sdk_tools_resources_and_errors(config):
         async with Client(server) as client:
             tools = await client.list_tools()
             names = {tool.name for tool in tools.tools}
-            assert len(names) == 77
+            assert len(names) == 103
             sdk = await client.call_tool("ddda_sdk_catalog", {})
             assert "standalone" in sdk.structured_content["data"]["backends"]
             refused_sdk = await client.call_tool("generate_ddda_sdk", {})

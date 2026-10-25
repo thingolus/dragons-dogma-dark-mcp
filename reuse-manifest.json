@@ -2,7 +2,7 @@
   "schema_version": 1,
   "project": "Dragons Dogma Dark MCP",
   "created_date": "2026-10-22",
-  "status": "v0.9 general modding workflows; native acceptance and remaining limits in docs/VALIDATION.md",
+  "status": "v0.11 general modding workbench; explicit format/native limits in docs/GENERAL_MODDING.md and evidence in docs/VALIDATION.md",
   "validation_document": "docs/VALIDATION.md",
   "implementation_adaptations": {
     "scripts/inspect_game.py and static probe conventions": "src/ddda_mcp/binary.py",

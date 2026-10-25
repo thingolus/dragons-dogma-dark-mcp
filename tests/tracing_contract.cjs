@@ -83,6 +83,10 @@ console.log('world callback contract passed');
 P.prototype.toString=function(){return '0x'+this.address.toString(16);};
 context.Process.arch='ia32';context.Process.pointerSize=4;context.Process.enumerateModules=()=>[];
 context.Module={load:()=>({getExportByName:name=>name})};
+let allocationAddress=0x60000000;
+context.Memory={alloc:n=>{const p=allocate(allocationAddress,n);allocationAddress+=n+32;return p;}};
+P.prototype.writeU32=function(n){this.u32(0,n);return this;};
+P.prototype.writeByteArray=function(bytes){const r=this.region();r.buffer.set(bytes,this.address-r.address);return this;};
 context.NativeFunction=function(name){return ()=>name==='OfflineState'?2:name==='ResearchErrors'?0:1;};
 const previousAttachments=attachments;
 context.setTimeout=setTimeout;context.clearTimeout=clearTimeout;
@@ -99,5 +103,26 @@ await context.researchStart(1000);prefix.u32(0,0xe9);
 assert.equal((await context.researchStop()).cleanup.sealed,false);prefix.region().buffer.set(original);
 await assert.rejects(()=>context.researchStart(10001),/invalid_capture/);
 console.log('standalone callback contract passed');
+
+// Exercise the actual native SDK wire decoder with a copied ABI record.
+let sdkRunning=0, eventVersion=1;
+context.NativeFunction=function(name){return (buffer)=>{
+  if(name==='DdSdkStatus'){
+    assert.equal(buffer.readU32(),36);buffer.u32(8,sdkRunning);buffer.u32(32,7);return 1;
+  }
+  if(name==='DdSdkStart'){sdkRunning=1;return 1;}
+  if(name==='DdSdkStop'){sdkRunning=0;return 1;}
+  if(name==='DdSdkReadEvents'){
+    for(const [offset,value] of [[0,84],[4,eventVersion],[8,1],[12,1],[16,0],[20,220],[24,3],[28,3]])buffer.u32(offset,value);
+    buffer.f32(32,12);buffer.f32(44,90);buffer.f32(48,100);buffer.f32(52,50);return 1;
+  }
+  return name==='OfflineState'?2:name==='ResearchErrors'?0:1;
+};};
+assert.equal(context.sdkEventStart(500).running,1);
+let batch=context.sdkEventDrain();assert.equal(batch.events[0].hp,90);
+assert.equal(batch.events[0].position[0],12);assert.equal(batch.status.contended_callbacks,7);
+assert.equal(batch.status.dropped,0);assert(context.sdkEventStop().sealed);
+eventVersion=2;assert.throws(()=>context.sdkEventDrain(),/sdk_abi_changed/);
+console.log('native SDK wire contract passed');
 
 })().catch(e=>{console.error(e);process.exitCode=1;});

@@ -5,12 +5,15 @@ import hashlib
 import json
 import shutil
 import subprocess
+import time
 import uuid
 from pathlib import Path
 
 from .build import run_process, unpack_archive
 from .common import ToolFailure, atomic_json, contained, digest
 from .config import BASELINE, GAME_SHA256
+from .sdk_contracts import CONTRACT_TEST, catalog, header
+from .sdk_contracts import schemas as gameplay_schemas
 
 SCHEMA = {
     "version": 1,
@@ -118,6 +121,16 @@ class SDK:
     def catalog(self):
         return {
             **SCHEMA,
+            "observation_extension": catalog(),
+            "native_events": {
+                "abi_version": 1,
+                "header": "native_sdk.hpp",
+                "backend": "standalone",
+                "kinds": ["sample", "stamina_request", "hp_changed", "inventory_delta", "actor_replaced"],
+                "exports": ["DdSdkStart", "DdSdkReadEvents", "DdSdkStatus", "DdSdkStop"],
+                "capture_tool": "capture_native_sdk_events",
+                "scope": "Sampled callback events, 5 Hz per party role; single consumer, bounded queue, no causal attribution or complete lifetime tracking.",
+            },
             "backends": {
                 "coop": "Full reviewed co-op control and diagnostics",
                 "standalone": "Owned offline game; callback-only party/inventory/enemy observation, no co-op DLL or input control",
@@ -133,10 +146,45 @@ class SDK:
         folder.mkdir(parents=True)
         schemas = {**SCHEMA, "references": [self.source.reference(p) for p in SCHEMA["source_paths"]]}
         (folder / "ddda_sdk.hpp").write_text(HEADER, encoding="utf-8")
+        (folder / "ddda_observations.hpp").write_text(header(), encoding="utf-8")
+        atomic_json(folder / "gameplay_schemas.json", gameplay_schemas())
+        (folder / "observation_contract.cpp").write_text(CONTRACT_TEST, encoding="utf-8")
+        schemas["observation_extension"] = catalog()
         atomic_json(folder / "schema.json", schemas)
         signatures = {
             s["name"]: s["runtime_signature"] for s in self.source.symbols() if "runtime_signature" in s
         }
+        for name in ("native_sdk.hpp", "native_sdk.cpp", "example_mod.cpp"):
+            (folder / name).write_bytes(Path(__file__).with_name(name).read_bytes())
+        from .trace_catalog import reviewed
+
+        signature = reviewed(self.source, "native_stamina_apply")
+        identity = (
+            "// Generated reviewed identity. MIT, Thingolus.\n#pragma once\n"
+            + "constexpr unsigned char ddda_game_sha256[]={"
+            + ",".join(str(b) for b in bytes.fromhex(GAME_SHA256))
+            + "};\n"
+            + "constexpr unsigned char ddda_stamina_bytes[]={"
+            + ",".join(str(b) for b in bytes.fromhex(signature["bytes"]))
+            + "};\n"
+            + f"constexpr unsigned ddda_stamina_rva={signature['rva']};\n"
+        )
+        (folder / "sdk_build_identity.hpp").write_text(identity, encoding="utf-8")
+        (folder / "NATIVE_SDK.md").write_text(
+            "# Native event SDK\n\nBuild Win32 with CMake. Link a mod against research_bridge.lib and include native_sdk.hpp. "
+            "ResearchInitialize establishes the offline guard; call DdSdkStart from a worker after loading a world. "
+            "Drain DdSdkReadEvents regularly; check DdSdkStatus for dropped events and errors. "
+            "example_mod.dll exports SampleStart, SamplePoll (a copied-value HP logger), and SampleStop. "
+            "The queue has one consumer; SamplePoll and an external consumer must not drain it concurrently.\n\n"
+            "Status distinguishes queue overflow (dropped) from callbacks skipped on a busy sampling lock "
+            "(contended_callbacks, including non-party callbacks). Neither counter proves complete coverage.\n\n"
+            "Native stamina requests are sampled at most five times per second per party actor. HP and inventory events are sampled deltas, not causal hooks. "
+            "IDs change when an observed actor or stage changes; destruction/reuse between samples is not excluded. "
+            "Only the exact executable hash and hook signature are admitted. DdSdkStop must return 1; otherwise stop the owned process. "
+            "Stop retains the disabled trampoline for in-flight return paths; Start can reuse it after signature checks. "
+            "Keep the DLL loaded until process exit. Never initialize, unload, or stop under the loader lock.\n",
+            encoding="utf-8",
+        )
         (folder / "bridge.cpp").write_text(bridge_source(signatures), encoding="utf-8")
         for path in ("src/network_guard.cpp", "src/native_offline.cpp", "include/coop/native_offline.hpp"):
             target = folder / path
@@ -154,13 +202,21 @@ if(!ddda::valid(s)) return 2; s.version=999; return ddda::valid(s)?3:0; }
             """cmake_minimum_required(VERSION 3.20)
 project(DDDAResearchBridge LANGUAGES C CXX)
 set(CMAKE_CXX_STANDARD 20)
+option(DDDA_BUILD_BRIDGE "Build the Windows offline research bridge" ON)
+if(DDDA_BUILD_BRIDGE)
 add_subdirectory(external/minhook)
-add_library(research_bridge SHARED bridge.cpp src/network_guard.cpp src/native_offline.cpp)
+add_library(research_bridge SHARED bridge.cpp native_sdk.cpp src/network_guard.cpp src/native_offline.cpp)
+target_compile_definitions(research_bridge PRIVATE DDDA_SDK_BUILD)
 target_include_directories(research_bridge PRIVATE include external/minhook/include)
-target_link_libraries(research_bridge PRIVATE minhook ws2_32)
+target_link_libraries(research_bridge PRIVATE minhook ws2_32 bcrypt)
+add_library(example_mod SHARED example_mod.cpp)
+target_link_libraries(example_mod PRIVATE research_bridge)
+endif()
 add_executable(sdk_contract sdk_test.cpp)
+add_executable(observation_contract observation_contract.cpp)
 enable_testing()
 add_test(NAME sdk_contract COMMAND sdk_contract)
+add_test(NAME observation_contract COMMAND observation_contract)
 """,
             encoding="utf-8",
         )
@@ -194,12 +250,31 @@ add_test(NAME sdk_contract COMMAND sdk_contract)
             shutil.copytree(folder, target)
             pins = json.loads(self.source.read("tools.lock.json"))
             pin = next(r["commit"] for r in pins["sources"] if r["name"] == "minhook")
-            raw = await asyncio.to_thread(
-                subprocess.check_output,
-                ["git", "-C", str(self.config.source / "external/minhook"), "archive", "--format=tar", pin],
-                timeout=30,
-            )
-            unpack_archive(raw, target / "external/minhook")
+            if self.source.bundled:
+                vendor = self.source.snapshot()["minhook"]
+                if vendor["commit"] != pin:
+                    raise ToolFailure("sdk_source", "Bundled MinHook identity changed.")
+                for name, row in vendor["files"].items():
+                    raw = row["text"].encode("utf-8")
+                    if hashlib.sha256(raw).hexdigest() != row["sha256"]:
+                        raise ToolFailure("sdk_source", "Bundled MinHook source changed.")
+                    output = contained(target / "external/minhook", target / "external/minhook" / name)
+                    output.parent.mkdir(parents=True, exist_ok=True)
+                    output.write_bytes(raw)
+            else:
+                raw = await asyncio.to_thread(
+                    subprocess.check_output,
+                    [
+                        "git",
+                        "-C",
+                        str(self.config.source / "external/minhook"),
+                        "archive",
+                        "--format=tar",
+                        pin,
+                    ],
+                    timeout=30,
+                )
+                unpack_archive(raw, target / "external/minhook")
             cmake = self.builds.executable(self.config.settings.cmake, "cmake", "cmake/**/cmake.exe")
             ctest = str(Path(cmake).with_name("ctest.exe"))
             commands = [
@@ -299,3 +374,75 @@ add_test(NAME sdk_contract COMMAND sdk_contract)
                 failure.details = receipt
                 raise failure
             return {**receipt, **result}
+
+    async def events(self, sessions, seconds=2):
+        sessions._admit()
+        if not 0.2 <= seconds <= 10 or (sessions.receipt or {}).get("backend") != "standalone":
+            raise ToolFailure("backend_capability", "Use a standalone session and 0.2–10 seconds.")
+        provenance = dict(sessions.receipt)
+        events, cleanup, failure = [], {}, None
+        async with sessions.operation_lock:
+            started = False
+            try:
+                started = True
+                await sessions._request("sdk_events_start", duration_ms=round(seconds * 1000))
+                deadline = time.monotonic() + seconds
+                while time.monotonic() < deadline:
+                    await asyncio.sleep(min(0.25, max(0, deadline - time.monotonic())))
+                    batch = await sessions._request("sdk_events_drain")
+                    events.extend(batch["events"])
+                    if len(events) > 2048 or batch["status"]["errors"] or batch["status"]["dropped"]:
+                        raise ToolFailure(
+                            "sdk_capture_incomplete",
+                            "Native event errors, dropped events or capture budget exceeded.",
+                        )
+            except BaseException as exc:
+                failure = exc
+            finally:
+                if started:
+                    try:
+                        cleanup = await sessions._request("sdk_events_stop")
+                        if not cleanup["sealed"]:
+                            raise ToolFailure("sdk_cleanup_failed", "Native hook cleanup did not verify.")
+                        for _ in range(8):
+                            batch = await sessions._request("sdk_events_drain")
+                            events.extend(batch["events"])
+                            if not batch["status"]["queued"]:
+                                break
+                        if (
+                            batch["status"]["queued"]
+                            or batch["status"]["dropped"]
+                            or batch["status"]["errors"]
+                            or len(events) > 2048
+                        ):
+                            raise ToolFailure(
+                                "sdk_capture_incomplete", "Final native event capture is incomplete."
+                            )
+                    except BaseException as exc:
+                        failure = failure or exc
+                        await sessions._stop()
+                        cleanup["owned_process_stopped"] = True
+        summary = {
+            "events": len(events),
+            "outcome": "inconclusive" if failure or not events else "completed",
+            "cleanup_verified": bool(cleanup.get("sealed")),
+        }
+        data = {
+            "events": events[:2048],
+            "cleanup": cleanup,
+            "summary": summary,
+            "error": str(failure)[:500] if failure else None,
+            "limitations": [
+                "Stamina requests are sampled native callbacks, at most 5 Hz per party actor.",
+                "Contended callback attempts may be skipped, including non-party callbacks; status reports them separately from queued event loss.",
+                "HP and inventory changes are sampled deltas; action/attacker attribution is unavailable.",
+                "Incarnations detect observed pointer/stage replacement, not unobserved destruction and address reuse.",
+            ],
+        }
+        receipt = self.artifacts.put(
+            "native_sdk_events", data, {**provenance, "evidence_class": "native_sdk_callback_observation"}
+        )
+        if isinstance(failure, asyncio.CancelledError):
+            failure.details = receipt
+            raise failure
+        return {**receipt, "summary": summary}

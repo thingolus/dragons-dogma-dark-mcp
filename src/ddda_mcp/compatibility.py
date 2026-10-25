@@ -154,8 +154,10 @@ class Compatibility:
             raise ToolFailure(
                 "contract_mismatch", "Reviewed compatibility contract differs from the configured source pin."
             )
-        candidate_commit = (
-            candidate_commit or self.source.git("rev-parse", "--verify", "HEAD^{commit}").decode().strip()
+        candidate_commit = candidate_commit or (
+            self.source.commit
+            if self.source.bundled
+            else self.source.git("rev-parse", "--verify", "HEAD^{commit}").decode().strip()
         )
         if not re.fullmatch(r"[0-9a-f]{40}", candidate_commit):
             raise ToolFailure("invalid_revision", "Use a full immutable 40-character commit SHA.")

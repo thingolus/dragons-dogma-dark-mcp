@@ -137,6 +137,13 @@ class Suites:
             doc = self.app.artifacts.get(case["fixture_id"])
             if doc["kind"] != "gameplay_fixture" or case["recipe"] not in {"observe_idle", *SCENARIOS}:
                 raise ToolFailure("suite_invalid", "Select registered fixtures and reviewed recipes.")
+            if case.get("plan_id"):
+                plan = self.app.native_experiments.plan(case["plan_id"])
+                if plan.fixture_id != case["fixture_id"]:
+                    raise ToolFailure(
+                        "suite_invalid", "Native plans must bind the same fixture as their trial."
+                    )
+                refs[case["plan_id"]] = digest(self.app.artifacts.path(case["plan_id"]))
             if case.get("predicate", "scenario") not in {
                 "scenario",
                 "damage",
@@ -312,7 +319,9 @@ class Suites:
                     if data["state"] != "awaiting_world":
                         raise ToolFailure("suite_state", "Prepare and load the checkpoint first.")
                     active = data["active"]
-                    if (self.app.sessions.receipt or {}).get("session_id") != active.get("session_id"):
+                    if self.app.sessions.receipt and self.app.sessions.receipt.get(
+                        "session_id"
+                    ) != active.get("session_id"):
                         raise ToolFailure(
                             "suite_state", "Trial session is no longer owned; abort to restore."
                         )
@@ -321,44 +330,52 @@ class Suites:
                     case = active["case"]
                     try:
                         await self.app.harness.wait_ready(self.app.harness.load(active["checkpoint_id"]), 60)
-                        before = await self.app.controls.world(0.5)
-                        scenario = await self.app.scenarios.run(
-                            active["checkpoint_id"], case["recipe"], stop_after=False
-                        )
-                        after = await self.app.controls.world(0.5)
-                        native = self.app.artifacts.get(scenario["artifact_id"])["data"].get(
-                            "native_trace", {}
-                        )
-                        checked = outcome(
-                            case.get("predicate", "scenario"),
-                            before["world"],
-                            after["world"],
-                            {**scenario, "native_trace": native},
-                            case.get("role", 0),
-                            case.get("item_id"),
-                            case.get("minimum", 1),
-                        )
-                        if any(
-                            not capture.get("cleanup", {}).get("sealed")
-                            or capture["cleanup"].get("errors")
-                            or not capture["world"].get("samples")
-                            for capture in (before, after)
-                        ):
-                            checked = {"passed": None, "reason": "incomplete_world_capture"}
-                        active.update(
-                            evidence={
-                                "before": before["artifact_id"],
-                                "after": after["artifact_id"],
-                                "scenario": scenario["artifact_id"],
-                            },
-                            predicate=checked,
-                            outcome="inconclusive"
-                            if checked["passed"] is None
-                            else "passed"
-                            if checked["passed"]
-                            else "failed",
-                        )
-                        active["diagnosis"] = self.app.diagnosis.analyze(scenario["artifact_id"])
+                        if case.get("plan_id"):
+                            result = await self.app.native_experiments.run(case["plan_id"], ident)
+                            active.update(
+                                outcome=result["summary"]["outcome"],
+                                evidence={"experiment": result["artifact_id"]},
+                                predicate=result["summary"].get("measurement"),
+                            )
+                        else:
+                            before = await self.app.controls.world(0.5)
+                            scenario = await self.app.scenarios.run(
+                                active["checkpoint_id"], case["recipe"], stop_after=False
+                            )
+                            after = await self.app.controls.world(0.5)
+                            native = self.app.artifacts.get(scenario["artifact_id"])["data"].get(
+                                "native_trace", {}
+                            )
+                            checked = outcome(
+                                case.get("predicate", "scenario"),
+                                before["world"],
+                                after["world"],
+                                {**scenario, "native_trace": native},
+                                case.get("role", 0),
+                                case.get("item_id"),
+                                case.get("minimum", 1),
+                            )
+                            if any(
+                                not capture.get("cleanup", {}).get("sealed")
+                                or capture["cleanup"].get("errors")
+                                or not capture["world"].get("samples")
+                                for capture in (before, after)
+                            ):
+                                checked = {"passed": None, "reason": "incomplete_world_capture"}
+                            active.update(
+                                evidence={
+                                    "before": before["artifact_id"],
+                                    "after": after["artifact_id"],
+                                    "scenario": scenario["artifact_id"],
+                                },
+                                predicate=checked,
+                                outcome="inconclusive"
+                                if checked["passed"] is None
+                                else "passed"
+                                if checked["passed"]
+                                else "failed",
+                            )
+                            active["diagnosis"] = self.app.diagnosis.analyze(scenario["artifact_id"])
                     except BaseException as exc:
                         active.update(
                             outcome="inconclusive",
@@ -366,6 +383,12 @@ class Suites:
                             partial_evidence=getattr(exc, "details", None),
                         )
                     finally:
+                        try:
+                            active["crash_reports"] = self.app.crashes.reports(active["session_id"])[
+                                "reports"
+                            ]
+                        except Exception as exc:
+                            active["crash_report_error"] = type(exc).__name__
                         atomic_json(self.path(ident), data)
                         await self.cleanup(data)
                     if not active["shared_life_unchanged"]:

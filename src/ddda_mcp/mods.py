@@ -124,6 +124,10 @@ class Mods:
         return self.register(manifest["label"], files, manifest.get("hooks"), manifest.get("requires"))
 
     def merge_archives(self, left_id, right_id):
+        from .game_parameters import FORMAT as GAME_FORMAT
+        from .game_parameters import GameParameters
+        from .parameters import FORMAT, Parameters
+
         left, _ = self.assets.read(left_id, "asset_archive")
         right, _ = self.assets.read(right_id, "asset_archive")
         if not left.get("base_id") or left.get("base_sha256") != right.get("base_sha256"):
@@ -138,18 +142,25 @@ class Mods:
                 a, _ = self.assets.read(previous["replacement"])
                 b, _ = self.assets.read(change["replacement"])
                 if (
-                    a.get("format") != "gmd_unlabelled_v1"
+                    a.get("format") not in {"gmd_unlabelled_v1", FORMAT, GAME_FORMAT}
                     or b.get("format") != a.get("format")
                     or not a.get("base_id")
                     or a.get("base_sha256") != b.get("base_sha256")
                 ):
                     raise ToolFailure("mod_conflict", "Both mods replace the same opaque archive entry.")
-                edits = {e["index"]: e for e in a["edits"]}
-                for edit in b["edits"]:
-                    if edit["index"] in edits and edits[edit["index"]] != edit:
-                        raise ToolFailure("mod_conflict", "Both mods change the same text index differently.")
-                    edits[edit["index"]] = edit
-                merged = self.assets.edit_text(a["base_id"], list(edits.values()))
+                if a["format"] == FORMAT:
+                    merged = Parameters(self.assets).merge(previous["replacement"], change["replacement"])
+                elif a["format"] == GAME_FORMAT:
+                    merged = GameParameters(self.assets).merge(previous["replacement"], change["replacement"])
+                else:
+                    edits = {e["index"]: e for e in a["edits"]}
+                    for edit in b["edits"]:
+                        if edit["index"] in edits and edits[edit["index"]] != edit:
+                            raise ToolFailure(
+                                "mod_conflict", "Both mods change the same text index differently."
+                            )
+                        edits[edit["index"]] = edit
+                    merged = self.assets.edit_text(a["base_id"], list(edits.values()))
                 blob, _ = self.assets.read(merged["artifact_id"])
                 change = {**change, "replacement": merged["artifact_id"], "after": blob["sha256"]}
             by_index[change["index"]] = change
@@ -165,12 +176,15 @@ class Mods:
         self.config.require_development()
         disable_loaders = disable_loaders or []
         if (
-            not 1 <= len(mod_ids) <= 16
+            not 0 <= len(mod_ids) <= 16
+            or (not mod_ids and not disable_loaders)
             or len(set(mod_ids)) != len(mod_ids)
             or not label.strip()
             or len(label) > 120
         ):
-            raise ToolFailure("mod_invalid", "Select 1–16 distinct mods and a label.")
+            raise ToolFailure(
+                "mod_invalid", "Select up to 16 distinct mods, or named loaders to disable, and a label."
+            )
         if set(disable_loaders) - LOADERS:
             raise ToolFailure("mod_invalid", "Only named proxy loaders can be temporarily disabled.")
         files, hooks, conflicts, mods = {}, {}, [], []

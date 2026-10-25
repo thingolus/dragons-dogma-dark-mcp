@@ -2,7 +2,7 @@
 
 **Date:** 22 October 2026
 
-**Delivery state:** version 0.9.0 implements five general modding workflows: differential behavior research with Ghidra references; a versioned SDK and standalone offline observer; ARC/GMD editing; reusable fixture/profile gameplay suites; and mod conflict detection, merging, recovery and private packaging. See [workflow contracts](docs/MODDING_WORKBENCH.md) and [validation](docs/VALIDATION.md). Historical milestones and estimates below retain their original scope.
+**Delivery state:** version 0.11.0 includes [general modding workflows](docs/GENERAL_MODDING.md), supported parameter/texture editing, separate offline and native experiment runners, a standalone native event SDK, and bundled research for public core installation. See [validation](docs/VALIDATION.md) for evidence and remaining native acceptance. Historical milestones and estimates below retain their original scope.
 
 **Primary source:** [ddda-local-coop at `61ed1bf`](https://github.com/thingolus/ddda-local-coop/tree/61ed1bf830141b75981babe362cef42579eb98e3).
 
@@ -244,3 +244,8 @@ The planning task is complete when this independent project contains the reviewe
 The future MCP v1 is complete when the chosen P1–P4 scope passes its gates, an AI client can complete a representative development loop through typed tools, results are tied to exact inputs, interruptions recover safely, and benchmark results show whether the intended acceleration was achieved. A server that only lists tools is not that outcome.
 
 External technical references were checked on 22 October 2026. Pin exact package/protocol compatibility during implementation; do not infer installed versions from documentation alone.
+
+
+## Version 0.11 delivery
+
+Implemented named XFS/PRPZ/SKL/LOT/IST editors; global ARC atlas and supported TEX/DDS/PNG workflows; native fixed-input plans with fixture suites; standalone native event SDK and consumer sample; private crash/minidump diagnostics and durable mod isolation. Public core/standalone installation uses curated licensed source without private-checkout access. Validation and remaining native coverage are in docs/VALIDATION.md; supported semantics are in docs/GENERAL_MODDING.md. Public publication is a separate maintainer action after inspecting the audited package.

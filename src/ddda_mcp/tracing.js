@@ -47,8 +47,8 @@ async function traceStop() {
     symbol:r.name,rows:r.rows,omitted:r.omitted,errors:r.errors,started_ms:r.started,stopped_ms:Date.now()};
   })();return r.stopping;
 }
-async function traceStart(name,durationMs) {
-  if(!Object.hasOwn(REVIEWED_TRACES,name)||!Number.isInteger(durationMs)||durationMs<100||durationMs>30000)throw Error('invalid_trace');
+async function traceStart(name,durationMs,world=false) {
+  if(!Object.hasOwn(REVIEWED_TRACES,name)||!Number.isInteger(durationMs)||durationMs<100||durationMs>(world?120000:30000)||world&&name!=='native_stamina_apply')throw Error('invalid_trace');
   if(traceRun && (traceRun.running || traceRun.active || !(await traceStop()).sealed))throw Error('trace_busy');
   const s=snapshot(), spec=REVIEWED_TRACES[name], address=Process.mainModule.base.add(spec.rva);
   if(s.runtime!==2||s.guard_transport!==2||s.transport!==2||s.native_offline!==1||s.native_errors||s.faults||s.developer_input!==1||!s.stage||!s.generation)throw Error('trace_admission_failed');

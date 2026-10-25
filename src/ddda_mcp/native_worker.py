@@ -7,12 +7,13 @@ import queue
 import sys
 import threading
 import time
+import uuid
 from pathlib import Path
 
 import psutil
 
 from .binary import Binary
-from .common import ToolFailure, atomic_json, utc_now
+from .common import ToolFailure, atomic_json, digest, utc_now
 from .config import GAME_SHA256, Config
 from .control import verify_control_build
 from .deployment import installed, verify_offline_settings
@@ -112,6 +113,11 @@ def run(config: Config, session_id: str, receipt_path: Path, backend="coop", bri
                 "game_sha256": build["sha256"],
                 "runtime_sha256": deployment["files"]["ddcoop_runtime.dll"],
                 "settings_sha256": deployment["files"]["ddcoop.ini"],
+                "installed_native_files": {
+                    p.name: digest(p)
+                    for p in sorted(config.game.glob("*.dll"))[:64]
+                    if p.stat().st_size <= 128 * 1024 * 1024
+                },
                 "runtime_source_commit": deployment.get("source_commit"),
                 "runtime_provenance": (
                     "Standalone reviewed offline bridge; no co-op runtime loaded."
@@ -123,7 +129,60 @@ def run(config: Config, session_id: str, receipt_path: Path, backend="coop", bri
             threading.Thread(target=watchdog, daemon=True).start()
             threading.Thread(target=reader, daemon=True).start()
             session = device.attach(pid)
-            session.on("detached", lambda *args: done.set())
+            last_exception = [None, 0.0]
+
+            def save_exception(kind, exception):
+                try:
+                    report_id = uuid.uuid4().hex
+                    atomic_json(
+                        config.artifacts / "crashes" / (report_id + ".json"),
+                        {
+                            "kind": kind,
+                            "captured_at": utc_now(),
+                            "session": receipt,
+                            "exception": exception,
+                        },
+                    )
+                except Exception as exc:
+                    print(
+                        f"Exception report persistence failed: {type(exc).__name__}",
+                        file=sys.stderr,
+                        flush=True,
+                    )
+
+            def on_message(message, data):
+                value = message.get("payload", {})
+                if (
+                    message.get("type") == "send"
+                    and isinstance(value, dict)
+                    and value.get("kind") == "ddda_native_exception"
+                ):
+                    last_exception[:] = [value, time.monotonic()]
+                    save_exception("observed_native_exception", value)
+                else:
+                    print(json.dumps(message), file=sys.stderr, flush=True)
+
+            def on_detached(reason, crash=None):
+                if crash is not None:
+                    recent = time.monotonic() - last_exception[1] <= 2
+                    save_exception(
+                        "native_crash",
+                        {
+                            "type": "process_crash",
+                            "location": {},
+                            "preceding_exception": last_exception[0] if recent else None,
+                            "association": "A recent exception is a correlation candidate, not proven crash causality.",
+                            "detach_reason": str(reason)[:80],
+                        },
+                    )
+                elif not done.is_set():
+                    save_exception(
+                        "unexpected_detach",
+                        {"type": "session_detached", "location": {}, "detach_reason": str(reason)[:80]},
+                    )
+                done.set()
+
+            session.on("detached", on_detached)
             from .copied_groups import GROUPS
             from .trace_catalog import TRACES
 
@@ -146,10 +205,10 @@ def run(config: Config, session_id: str, receipt_path: Path, backend="coop", bri
                 + Path(__file__)
                 .with_name("control.js" if backend == "coop" else "standalone.js")
                 .read_text(encoding="utf-8")
+                + "\n"
+                + Path(__file__).with_name("crash_observer.js").read_text(encoding="utf-8")
             )
-            script.on(
-                "message", lambda message, data: print(json.dumps(message), file=sys.stderr, flush=True)
-            )
+            script.on("message", on_message)
             script.load()
             # Recheck file ownership immediately before loading native code.
             if backend == "coop":
@@ -157,6 +216,7 @@ def run(config: Config, session_id: str, receipt_path: Path, backend="coop", bri
                 script.exports_sync.bootstrap(str(config.game / "ddcoop_runtime.dll"))
             else:
                 script.exports_sync.research_bootstrap(str(bridge_path))
+            script.exports_sync.diagnostic_install()
             device.resume(pid)
             receipt["state"] = "running"
             atomic_json(receipt_path, receipt)
@@ -170,6 +230,17 @@ def run(config: Config, session_id: str, receipt_path: Path, backend="coop", bri
                 last_request[0] = time.monotonic()
                 op = request.get("op")
                 try:
+                    if op in {"diagnostic_snapshot", "diagnostic_dump"}:
+                        if op == "diagnostic_snapshot":
+                            value = script.exports_sync.diagnostic_snapshot()
+                        else:
+                            from .crashes import dump_summary, write_minidump
+
+                            dump_path = config.artifacts / "dumps" / (uuid.uuid4().hex + ".dmp")
+                            value = write_minidump(pid, created, dump_path)
+                            value["metadata"] = dump_summary(dump_path.read_bytes())
+                        emit({"id": request["id"], "ok": True, "value": value})
+                        continue
                     if backend == "standalone":
                         if op == "stop":
                             emit({"id": request["id"], "ok": True, "value": {"stopping": True}})
@@ -182,6 +253,12 @@ def run(config: Config, session_id: str, receipt_path: Path, backend="coop", bri
                             value = script.exports_sync.research_start(request["duration_ms"])
                         elif op == "research_stop":
                             value = script.exports_sync.research_stop()
+                        elif op == "sdk_events_start" and type(request.get("duration_ms")) is int:
+                            value = script.exports_sync.sdk_event_start(request["duration_ms"])
+                        elif op == "sdk_events_drain":
+                            value = script.exports_sync.sdk_event_drain()
+                        elif op == "sdk_events_stop":
+                            value = script.exports_sync.sdk_event_stop()
                         else:
                             raise ToolFailure(
                                 "backend_capability", "Operation is unavailable on standalone observer."
@@ -233,6 +310,8 @@ def run(config: Config, session_id: str, receipt_path: Path, backend="coop", bri
                         value = script.exports_sync.world_start(request["duration_ms"])
                     elif op == "world_stop":
                         value = script.exports_sync.world_stop()
+                    elif op == "world_latest":
+                        value = script.exports_sync.world_latest()
                     elif op == "neutral" and type(request.get("connected")) is bool:
                         value = script.exports_sync.neutral(request["connected"])
                     elif op == "title_start" and type(request.get("pressed")) is bool:

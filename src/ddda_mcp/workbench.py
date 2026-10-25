@@ -28,9 +28,10 @@ class ModFile(BaseModel):
 class SuiteCase(BaseModel):
     model_config = ConfigDict(extra="forbid")
     fixture_id: str
+    plan_id: str | None = None
     recipe: Literal[
         "observe_idle", "movement_pair", "attack_pair", "jump_pair", "menu_roundtrip", "interaction_menu"
-    ]
+    ] = "observe_idle"
     predicate: Literal["scenario", "damage", "healed", "revived", "inventory_gain"] = "scenario"
     role: Literal[0, 1] = 0
     item_id: int | None = Field(default=None, ge=-32768, le=32767)
@@ -39,6 +40,11 @@ class SuiteCase(BaseModel):
 
 def register_tools(mcp, app):
     from .server import Read, Replace, Result, Write
+
+    @mcp.tool(annotations=Write)
+    async def capture_native_sdk_events(seconds: Annotated[float, Field(ge=0.2, le=10)] = 2) -> Result:
+        """Capture bounded native SDK events on the owned standalone game; retain drops/errors and verified hook cleanup."""
+        return await app.invoke("capture_native_sdk_events", app.sdk.events, app.sessions, seconds)
 
     @mcp.tool(annotations=Write)
     async def compare_behavior(
@@ -159,7 +165,7 @@ def register_tools(mcp, app):
     @mcp.tool(annotations=Write)
     async def compose_mod_profile(
         label: str,
-        mod_ids: Annotated[list[str], Field(min_length=1, max_length=16)],
+        mod_ids: Annotated[list[str], Field(min_length=0, max_length=16)],
         disable_loaders: Annotated[list[str] | None, Field(max_length=4)] = None,
     ) -> Result:
         """Detect file/dependency/hook conflicts; merge independent ARC entries and nonconflicting supported GMD text edits."""

@@ -70,14 +70,14 @@ function worldSample(actor){
 function worldLatest(){
   const r=worldRun;if(!r)return {available:false};const now=Date.now();
   return {available:true,stage:r.stage,generation:r.generation,samples:r.samples,
-    party:r.party.map(p=>p?{...p,age_ms:now-p.observed_ms}:null),enemies:r.enemies,
+    party:r.party.map(p=>p?{...p,age_ms:now-p.observed_ms}:null),enemies:r.enemies?{...r.enemies,age_ms:now-r.enemies.observed_ms}:null,
     quests:{available:false,reason:'No reviewed quest-state layout; checkpoint labels are not quest observations.'},
     identity_scope:'Opaque IDs within this capture and observed lifetime; address reuse between callbacks cannot be excluded.'};
 }
 async function worldStart(durationMs){
-  const started=await traceStart('native_stamina_apply',durationMs),s=snapshot();
+  const started=await traceStart('native_stamina_apply',durationMs,true),s=snapshot();
   worldRun={stage:s.stage,generation:s.generation,times:[0,0],party:[null,null],enemies:null,ids:new Map(),samples:0};
   traceRun.world=true;return started;
 }
 async function worldStop(){const cleanup=await traceStop();return {world:worldLatest(),cleanup};}
-Object.assign(rpc.exports,{worldStart,worldStop});
+Object.assign(rpc.exports,{worldStart,worldStop,worldLatest});

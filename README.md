@@ -1,8 +1,14 @@
 # Dragons Dogma Dark MCP
 
-A dedicated Model Context Protocol project for faster AI-assisted development of **Dragon's Dogma: Dark Arisen (DDDA / Dragon's Dogma 1)**.
+A local Model Context Protocol toolkit for developing mods for **Dragon's Dogma: Dark Arisen (DDDA / Dragon's Dogma 1)**.
 
-Created by **Thingolus**. Version **0.9.0** implements 77 typed MCP tools and four resource routes over stdio. It reuses the co-op project's pinned research, signatures, runtime ABI, build targets, and deployment conventions.
+Created by **Thingolus**. Version **0.11.0** implements 103 typed MCP tools and four resource routes over stdio. It reuses the co-op project's pinned research, signatures, runtime ABI, build targets, and deployment conventions.
+
+Download the [experimental releases](https://github.com/thingolus/dragons-dogma-dark-mcp/releases). For a manual Windows installation, choose `Dragons-Dogma-Dark-MCP-0.11.0-Experimental.zip` and follow its `START_HERE.txt`. This is a developer toolkit with manual setup; keep it in a separate writable folder.
+
+Version 0.11 adds named skill/enemy/encounter/loot parameter editing, a native experiment runner, a global asset atlas with TEX/DDS/PNG workflows, a standalone native event SDK, and crash diagnostics with mod-set isolation. See the [new workflows and limits](docs/GENERAL_MODDING.md) and [validation evidence](docs/VALIDATION.md).
+
+Core research, asset authoring and standalone SDK generation/build use bundled, hash-verified MIT research and BSD MinHook sources. The optional co-op integration requires its own reviewed checkout/build. No game assets, saves or native binaries are distributed.
 
 The gameplay development tools now include expiring controller ownership, callback-only world inspection, reusable scenarios, failure diagnosis and isolated patch verification. Native checks have verified assignment and movement for both players while a physical controller remained connected, input release, party resources/inventories and deployment/save restoration. Combat damage, learned dodge, enemy presence and quest-state coverage remain separate gates. See [gameplay workflows](docs/GAMEPLAY_DEVELOPMENT.md) and [validation](docs/VALIDATION.md).
 
@@ -12,6 +18,13 @@ Version 0.9 adds behavior comparisons with analyzed Ghidra references, a reusabl
 
 | Workflow | Tools |
 | --- | --- |
+| Native experiments | `run_native_experiment` |
+| General parameters | `inspect_game_parameters`, `edit_game_parameters`, `diff_game_parameters` |
+| Asset atlas and textures | `build_asset_index`, `search_assets`, `extract_indexed_asset`, `inspect_asset_references`, `export_texture`, `import_texture_dds` |
+| Native SDK events | `capture_native_sdk_events` |
+| Diagnostics and isolation | `capture_session_diagnostic`, `list_crash_reports`, `analyze_crash_report`, `create_mod_isolation`, `advance_mod_isolation`, `mod_isolation_status` |
+| Offline experiments | `experiment_catalog`, `create_experiment_plan`, `record_gameplay_observations`, `query_gameplay_events`, `replay_gameplay_experiment` |
+| Item parameters | `item_parameter_catalog`, `inspect_item_parameters`, `edit_item_parameters`, `diff_item_parameters` |
 | Behavior research | `compare_behavior`, `capture_behavior_experiment` |
 | Reusable SDK | `ddda_sdk_catalog`, `generate_ddda_sdk`, `build_research_bridge`, `inspect_standalone_world` |
 | Asset editing | `list_asset_archives`, `open_asset_archive`, `inspect_asset`, `edit_asset_text`, `repack_asset_archive` |
@@ -32,11 +45,11 @@ Version 0.9 adds behavior comparisons with analyzed Ghidra references, a reusabl
 | Repeated regression trials | `create_regression_campaign`, `advance_regression_campaign`, `regression_campaign_status` |
 | Saves | `backup_saves`, `restore_saves`, `save_restore_status`, `recover_save_restore` |
 
-The local project is an independent Git repository beside `ddda-local-coop`, under the DDDA workspace. The display name is **Dragons Dogma Dark MCP**; the repository slug is `dragons-dogma-dark-mcp`.
+The display name is **Dragons Dogma Dark MCP**; the repository and Python package name is `dragons-dogma-dark-mcp`. This is an experimental development toolkit; see the exact format coverage and native acceptance in the linked workflow documents.
 
 ## Install and connect
 
-Use Python 3.13+ and [uv](https://docs.astral.sh/uv/). Keep a local checkout of [ddda-local-coop](https://github.com/thingolus/ddda-local-coop) containing commit `e6a64c28d24bf4abda26887b0edeccc8bfd9b2a4`. By default it is a sibling folder, and the game is in the parent folder.
+Use Python 3.13+ and [uv](https://docs.astral.sh/uv/). Extract or clone this project into its own folder. Configure your game location with `game_root`; the default is the parent folder. A missing `coop_source_root` selects bundled pinned research automatically. An existing invalid checkout is rejected. Full co-op builds/control optionally use [ddda-local-coop](https://github.com/thingolus/ddda-local-coop) containing commit `e6a64c28d24bf4abda26887b0edeccc8bfd9b2a4`; access to that optional repository may be restricted.
 
 ```powershell
 uv sync --locked --extra live --python 3.13
@@ -46,9 +59,9 @@ uv sync --locked --extra live --python 3.13
 
 Insert the generated `mcpServers` entry into your MCP client's configuration. It uses absolute paths and the project's own Python environment. Start the server manually with `scripts/Start-Mcp.ps1`, or use the `ddda-mcp` entry point after installation. `scripts/Install.ps1 -UvPath <path-to-uv.exe>` provides the same installation and preflight check; `-WithoutLive` omits Frida.
 
-For Codex, run `.venv/Scripts/python.exe scripts/connect_codex.py`. It registers `dragons-dogma-dark` using the installed Codex CLI, preserves differing existing entries, and tests the saved command through an actual MCP handshake. A running chat may need a new session to discover the tools. This machine's connection has been registered and verified.
+For Codex, run `.venv/Scripts/python.exe scripts/connect_codex.py`. It registers `dragons-dogma-dark` using the installed Codex CLI, preserves differing existing entries, and tests the saved command through an actual MCP handshake. A running chat may need a new session to discover the tools.
 
-Version 0.3 adds journaled save recovery and three fixed movement recipes. Recovery has been tested across actual test-process termination; the movement recipes have synthetic contract coverage and still await loaded-game acceptance. [Workflow benchmarks](docs/BENCHMARKS.md) compare direct commands with MCP on four tasks, without claiming measured AI reasoning or token savings.
+Journaled save recovery has been tested across actual test-process termination. Current native movement and cleanup evidence is recorded in [validation](docs/VALIDATION.md). [Workflow benchmarks](docs/BENCHMARKS.md) compare direct commands with MCP on four tasks, without claiming measured AI reasoning or token savings.
 
 Version 0.4 adds a single-request investigation bundle, committed-source and named-build comparison, and Windows/Linux regression and release automation. Bundles gather research, source excerpts, disassembly, candidate references/callers, and optional Ghidra exports into private artifacts. Build reports flag changed exports, sections, signatures and settings without treating static findings as gameplay proof. See [analysis workflows](docs/ANALYSIS.md) and [versioned installation/releases](docs/RELEASES.md).
 
