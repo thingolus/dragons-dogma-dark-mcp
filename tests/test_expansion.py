@@ -72,6 +72,10 @@ def test_readiness_requires_fresh_callbacks():
 def fixture_checkpoint(development, monkeypatch):
     # These files and observations are synthetic pytest fixtures. Keep the real
     # native-host guards in production, including stdio subprocesses, unchanged.
+    def unexpected_native_host():
+        pytest.fail("Synthetic fixtures must not inspect the native host")
+
+    monkeypatch.setattr("ddda_mcp.ownership.require_native_host", unexpected_native_host)
     monkeypatch.setattr("ddda_mcp.saves.require_closed", lambda: None)
     monkeypatch.setattr("ddda_mcp.harness.require_closed", lambda: None)
     saves_root = development.root / "saves"
@@ -238,6 +242,7 @@ def test_bisection_never_treats_flakes_as_regression(outcomes):
 
 
 def test_campaign_build_deploy_launch_evaluate_and_restore(candidate, monkeypatch):
+    monkeypatch.setattr("ddda_mcp.regression.require_closed", lambda: None)
     config, candidate_root = candidate
     deployment = Deployment(config)
     initial = deployment.prepare("fixture")["receipt_id"]
